@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Conductor — Monitoreo UPC</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .logo {
+      font-size: 14px;
+      color: #aaa;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 24px;
+      color: #e0e0e0;
+      text-align: center;
+    }
+
+    /* Login */
+    #seccion-login {
+      width: 100%;
+      max-width: 360px;
+    }
+
+    .campo {
+      margin-bottom: 14px;
+    }
+
+    .campo label {
+      display: block;
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 6px;
+    }
+
+    .campo input {
+      width: 100%;
+      padding: 12px 16px;
+      background: #16213e;
+      border: 1px solid #0f3460;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .btn:active { opacity: 0.8; }
+
+    .btn-primary  { background: #0f3460; color: #fff; }
+    .btn-success  { background: #27ae60; color: #fff; }
+    .btn-danger   { background: #e74c3c; color: #fff; }
+    .btn-warning  { background: #f39c12; color: #fff; margin-bottom: 10px; }
+
+    #error-login {
+      color: #e74c3c;
+      font-size: 13px;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    /* Panel conductor */
+    #seccion-conductor {
+      width: 100%;
+      max-width: 360px;
+      display: none;
+    }
+
+    .info-conductor {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #ccc;
+    }
+
+    .info-conductor strong {
+      color: #fff;
+      display: block;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    /* Estado GPS */
+    .estado-gps {
+      background: #16213e;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .indicador {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 8px;
+      background: #555;
+    }
+
+    .indicador.activo    { background: #27ae60; animation: pulso 1.5s infinite; }
+    .indicador.error     { background: #e74c3c; }
+
+    @keyframes pulso {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    .coordenadas {
+      font-size: 12px;
+      color: #888;
+      margin-top: 8px;
+      font-family: monospace;
+    }
+
+    /* Botones de estado del bus */
+    .estados-bus {
+      margin-bottom: 20px;
+    }
+
+    .estados-bus p {
+      font-size: 13px;
+      color: #aaa;
+      margin-bottom: 10px;
+    }
+
+    .btn-estado {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid transparent;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 8px;
+      background: #16213e;
+      color: #ccc;
+      transition: all 0.2s;
+    }
+
+    .btn-estado.seleccionado {
+      border-color: #27ae60;
+      color: #27ae60;
+      background: #0d2b1a;
+    }
+
+    /* Log de envíos */
+    .log {
+      background: #0d0d1a;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 12px;
+      color: #888;
+      height: 120px;
+      overflow-y: auto;
+      font-family: monospace;
+      margin-bottom: 16px;
+    }
+
+    .log .ok    { color: #27ae60; }
+    .log .fallo { color: #e74c3c; }
+  </style>
+</head>
+<body>
+
+  <p class="logo">Universidad Popular del Cesar — Seccional Aguachica</p>
+  <h1>🚌 Panel del Conductor</h1>
+
+  <!-- ── SECCIÓN LOGIN ── -->
+  <div id="seccion-login">
+    <div class="campo">
+      <label>Correo institucional</label>
+      <input type="email" id="correo" placeholder="conductor@upc.edu.co" autocomplete="email">
+    </div>
+    <div class="campo">
+      <label>Contraseña</label>
+      <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn btn-primary" onclick="iniciarSesion()">Iniciar sesión</button>
+    <p id="error-login"></p>
+  </div>
+
+  <!-- ── SECCIÓN CONDUCTOR ── -->
+  <div id="seccion-conductor">
+
+    <div class="info-conductor">
+      <strong id="nombre-conductor">—</strong>
+      <span id="info-bus">Cargando bus asignado...</span>
+    </div>
+
+    <div class="estado-gps">
+      <span class="indicador" id="indicador-gps"></span>
+      <span id="texto-gps">GPS inactivo</span>
+      <div class="coordenadas" id="coordenadas">—</div>
+    </div>
+
+    <div class="estados-bus">
+      <p>Estado actual del bus:</p>
+      <button class="btn-estado" id="btn-en_recorrido"   onclick="cambiarEstado('en_recorrido')">🟢 En recorrido</button>
+      <button class="btn-estado" id="btn-detenido"       onclick="cambiarEstado('detenido')">🟡 Detenido</button>
+      <button class="btn-estado" id="btn-fuera_de_servicio" onclick="cambiarEstado('fuera_de_servicio')">🔴 Fuera de servicio</button>
+    </div>
+
+    <div class="log" id="log"></div>
+
+    <button class="btn btn-danger" onclick="cerrarSesion()">Cerrar sesión</button>
+  </div>
+
+<script>
+  const API = 'http://localhost:3000'
+
+  let token        = null
+  let idBus        = null
+  let idRuta       = null
+  let intervalo    = null
+  let estadoActual = 'en_recorrido'
+
+  // ── Login ──────────────────────────────────────────────────
+  async function iniciarSesion() {
+    const correo   = document.getElementById('correo').value.trim()
+    const password = document.getElementById('password').value
+
+    if (!correo || !password) {
+      mostrarError('Completa todos los campos')
+      return
+    }
+
+    try {
+      const res  = await fetch(`${API}/api/auth/login`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ correo, password }),
+      })
+      const data = await res.json()
+
+      if (!res.ok) {
+        mostrarError(data.error || 'Credenciales incorrectas')
+        return
+      }
+
+      if (data.usuario.tipo_usuario !== 'conductor') {
+        mostrarError('Solo los conductores pueden usar esta app')
+        return
+      }
+
+      token = data.token
+      document.getElementById('nombre-conductor').textContent = data.usuario.nombre
+      await cargarBusAsignado()
+      mostrarPanelConductor()
+
+    } catch {
+      mostrarError('Error de conexión con el servidor')
+    }
+  }
+
+  // ── Cargar bus asignado al conductor ───────────────────────
+  async function cargarBusAsignado() {
+    try {
+      const res  = await fetch(`${API}/api/buses/mi-bus`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const data = await res.json()
+
+      if (res.ok && data.bus) {
+        idBus  = data.bus.id_bus
+        idRuta = data.bus.id_ruta
+        document.getElementById('info-bus').textContent =
+          `Bus: ${data.bus.nombre} (${data.bus.placa}) — Ruta: ${data.bus.nombre_ruta}`
+      } else {
+        document.getElementById('info-bus').textContent = 'Sin bus asignado'
+      }
+    } catch {
+      document.getElementById('info-bus').textContent = 'Error cargando bus'
+    }
+  }
+
+  // ── Mostrar panel del conductor ────────────────────────────
+  function mostrarPanelConductor() {
+    document.getElementById('seccion-login').style.display     = 'none'
+    document.getElementById('seccion-conductor').style.display = 'block'
+    iniciarGPS()
+    seleccionarEstado('en_recorrido')
+  }
+
+  // ── GPS con watchPosition ──────────────────────────────────
+  function iniciarGPS() {
+    if (!navigator.geolocation) {
+      actualizarGPS(null, 'GPS no disponible en este dispositivo')
+      return
+    }
+
+    navigator.geolocation.watchPosition(
+      (pos) => {
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        actualizarGPS({ lat, lng })
+        enviarUbicacion(lat, lng)
+      },
+      (err) => {
+        actualizarGPS(null, `Error GPS: ${err.message}`)
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge:         3000,
+        timeout:            10000,
+      }
+    )
+  }
+
+  // ── Enviar ubicación al servidor ───────────────────────────
+  async function enviarUbicacion(lat, lng) {
+    if (!idBus) return
+
+    try {
+      const res = await fetch(`${API}/api/ubicacion`, {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:  `Bearer ${token}`,
+        },
+        body: JSON.stringify({ id_bus: idBus, lat, lng }),
+      })
+
+      const hora = new Date().toLocaleTimeString()
+      if (res.ok) {
+        agregarLog(`✓ ${hora} — lat: ${lat.toFixed(5)}, lng: ${lng.toFixed(5)}`, 'ok')
+      } else {
+        agregarLog(`✗ ${hora} — Error al enviar`, 'fallo')
+      }
+    } catch {
+      agregarLog(`✗ Sin conexión`, 'fallo')
+    }
+  }
+
+  // ── Cambiar estado del bus ─────────────────────────────────
+  async function cambiarEstado(estado) {
+    if (!idBus) return
+    estadoActual = estado
+    seleccionarEstado(estado)
+
+    try {
+      await fetch(`${API}/api/buses/${idBus}/estado`, {
+        method:  'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:  `Bearer ${token}`,
+        },
+        body: JSON.stringify({ estado }),
+      })
+    } catch {
+      agregarLog('✗ Error al cambiar estado', 'fallo')
+    }
+  }
+
+  // ── UI helpers ─────────────────────────────────────────────
+  function actualizarGPS(coords, errorMsg) {
+    const indicador  = document.getElementById('indicador-gps')
+    const textoGps   = document.getElementById('texto-gps')
+    const coordsEl   = document.getElementById('coordenadas')
+
+    if (coords) {
+      indicador.className  = 'indicador activo'
+      textoGps.textContent = 'GPS activo — enviando ubicación'
+      coordsEl.textContent = `lat: ${coords.lat.toFixed(6)}  lng: ${coords.lng.toFixed(6)}`
+    } else {
+      indicador.className  = 'indicador error'
+      textoGps.textContent = errorMsg || 'Error de GPS'
+      coordsEl.textContent = '—'
+    }
+  }
+
+  function seleccionarEstado(estado) {
+    document.querySelectorAll('.btn-estado').forEach(b => b.classList.remove('seleccionado'))
+    const btn = document.getElementById(`btn-${estado}`)
+    if (btn) btn.classList.add('seleccionado')
+  }
+
+  function agregarLog(msg, tipo) {
+    const log = document.getElementById('log')
+    log.innerHTML += `<div class="${tipo}">${msg}</div>`
+    log.scrollTop  = log.scrollHeight
+  }
+
+  function mostrarError(msg) {
+    document.getElementById('error-login').textContent = msg
+  }
+
+  function cerrarSesion() {
+    token = null; idBus = null; idRuta = null
+    if (intervalo) clearInterval(intervalo)
+    document.getElementById('seccion-login').style.display     = 'block'
+    document.getElementById('seccion-conductor').style.display = 'none'
+    document.getElementById('correo').value   = ''
+    document.getElementById('password').value = ''
+  }
+</script>
+</body>
+</html>
