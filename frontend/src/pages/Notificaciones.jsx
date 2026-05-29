@@ -9,37 +9,18 @@ import api from '../services/api'
 import socket from '../services/socket'
 import './Notificaciones.css'
 
-const NOTIFICACIONES_EJEMPLO = [
-  {
-    id: 1,
-    titulo: 'Retraso en Ruta 2',
-    mensaje: 'La ruta 2 presenta un retraso aproximado de 10 minutos.',
-    tipo: 'retraso',
-    leida: false,
-    hace: 'Hace 5 min',
-  },
-  {
-    id: 2,
-    titulo: 'Cambio de ruta en Bus #03',
-    mensaje: 'El bus #03 tomará una ruta alterna por obras en la vía.',
-    tipo: 'cambio_ruta',
-    leida: false,
-    hace: 'Hace 30 min',
-  },
-  {
-    id: 3,
-    titulo: 'Ruta 1 en horario normal',
-    mensaje: 'La ruta 1 se encuentra operando con normalidad.',
-    tipo: 'normal',
-    leida: true,
-    hace: 'Hace 1 h',
-  },
-]
 
 function infoTipo(tipo) {
   if (tipo === 'retraso')     return { icono: faTriangleExclamation, clase: 'notif-icono--amarillo' }
   if (tipo === 'cambio_ruta') return { icono: faRotate,              clase: 'notif-icono--azul' }
   return                             { icono: faCircleCheck,         clase: 'notif-icono--verde' }
+}
+
+function formatearHace(fechaHora) {
+  const diff = Math.floor((Date.now() - new Date(fechaHora)) / 60000)
+  if (diff < 1) return 'Ahora'
+  if (diff < 60) return `Hace ${diff} min`
+  return `Hace ${Math.floor(diff / 60)} h`
 }
 
 export default function Notificaciones() {
@@ -50,9 +31,17 @@ export default function Notificaciones() {
     async function cargar() {
       try {
         const data = await api.get('/api/notificaciones')
-        setNotifs(data)
+        const normalizadas = (data.notificaciones || []).map(n => ({
+          ...n,
+          id: n.id_notificacion,
+          titulo: `${n.tipo === 'retraso' ? 'Retraso' : 'Cambio de ruta'} — ${n.nombre_ruta}`,
+          leida: false,
+          hace: formatearHace(n.fecha_hora),
+        }))
+        setNotifs(normalizadas)
       } catch {
-        setNotifs(NOTIFICACIONES_EJEMPLO)
+        console.error('Error cargando notificaciones')
+        setNotifs([])
       } finally {
         setCargando(false)
       }

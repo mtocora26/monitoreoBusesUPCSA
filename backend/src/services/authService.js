@@ -1,19 +1,14 @@
 // src/services/authService.js
 // Lógica de negocio de autenticación
-// El controller llama a este servicio — nunca toca la BD directamente
+// Usa el modelo Usuario del diagrama de clases
 
-import bcrypt        from 'bcryptjs'
-import { pool }      from '../config/database.js'
+import bcrypt           from 'bcryptjs'
+import { Usuario }      from '../models/Usuario.js'
 import { generarToken } from '../utils/jwt.js'
 
 export async function login(correo, password) {
-  // 1. Buscar usuario por correo
-  const [rows] = await pool.query(
-    'SELECT * FROM usuario WHERE correo = ? AND activo = 1',
-    [correo]
-  )
-
-  const usuario = rows[0]
+  // 1. Buscar usuario por correo usando el modelo Usuario
+  const usuario = await Usuario.porCorreo(correo)
 
   // 2. Verificar que el usuario existe
   if (!usuario) {
@@ -28,9 +23,9 @@ export async function login(correo, password) {
 
   // 4. Generar JWT con datos del usuario
   const token = generarToken({
-    id_usuario:  usuario.id_usuario,
-    nombre:      usuario.nombre,
-    correo:      usuario.correo,
+    id_usuario:   usuario.id_usuario,
+    nombre:       usuario.nombre,
+    correo:       usuario.correo,
     tipo_usuario: usuario.tipo_usuario,
   })
 

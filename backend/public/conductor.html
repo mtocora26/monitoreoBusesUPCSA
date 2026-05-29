@@ -238,7 +238,8 @@
   </div>
 
 <script>
-  const API = 'http://localhost:3000'
+  // Uses the same host that served this page, so it works on LAN/mobile.
+  const API = window.location.origin
 
   let token        = null
   let idBus        = null

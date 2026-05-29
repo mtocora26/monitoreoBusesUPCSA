@@ -1,43 +1,34 @@
 // src/controllers/ubicacionController.js
-// Recibe la ubicación GPS del conductor y la procesa
+// POST /api/ubicacion — recibe GPS del conductor (#07)
 
 import { procesarUbicacion } from '../services/ubicacionService.js'
-import { io }                from '../server.js'
 
-// POST /api/ubicacion
 export async function recibirUbicacion(req, res) {
   const { id_bus, lat, lng } = req.body
-  const id_conductor = req.usuario.id_usuario
 
-  // Validar campos obligatorios
-  if (!id_bus || lat === undefined || lng === undefined) {
-    return res.status(400).json({
-      error: 'id_bus, lat y lng son obligatorios'
-    })
+  // Validar campos requeridos (RNF10 — confiabilidad)
+  if (!id_bus || lat == null || lng == null) {
+    return res.status(400).json({ error: 'Se requieren id_bus, lat y lng' })
+  }
+
+  // Validar que lat y lng sean números válidos
+  const latNum = parseFloat(lat)
+  const lngNum = parseFloat(lng)
+
+  if (isNaN(latNum) || isNaN(lngNum)) {
+    return res.status(400).json({ error: 'lat y lng deben ser números válidos' })
+  }
+
+  if (latNum < -90 || latNum > 90 || lngNum < -180 || lngNum > 180) {
+    return res.status(400).json({ error: 'Coordenadas fuera de rango válido' })
   }
 
   try {
-    const datos = await procesarUbicacion({ id_bus, id_conductor, lat, lng })
-
-    // Emitir por Socket.io al room de la ruta
-    io.to(`ruta_${datos.id_ruta}`).emit('bus:location', datos)
-
-    return res.status(200).json({ ok: true, datos })
-
+    const io = req.app.get('io')
+    await procesarUbicacion(io, id_bus, latNum, lngNum)
+    return res.status(200).json({ ok: true })
   } catch (error) {
-    const errores = {
-      COORDENADAS_INVALIDAS: { status: 400, mensaje: 'Coordenadas GPS inválidas' },
-      BUS_NO_ENCONTRADO:     { status: 404, mensaje: 'Bus no encontrado' },
-      BUS_NO_ASIGNADO:       { status: 403, mensaje: 'Este bus no está asignado a tu cuenta' },
-      RUTA_NO_ENCONTRADA:    { status: 404, mensaje: 'El bus no tiene una ruta asignada' },
-    }
-
-    const err = errores[error.message]
-    if (err) {
-      return res.status(err.status).json({ error: err.mensaje })
-    }
-
-    console.error('Error en ubicación:', error)
+    console.error('Error guardando ubicación:', error)
     return res.status(500).json({ error: 'Error interno del servidor' })
   }
 }

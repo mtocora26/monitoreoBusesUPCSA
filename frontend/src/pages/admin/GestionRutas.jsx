@@ -5,12 +5,6 @@ import Layout from '../../components/shared/Layout'
 import api from '../../services/api'
 import './GestionRutas.css'
 
-const RUTAS_EJEMPLO = [
-  { id_ruta: 1, nombre: 'Centro', num_paradas: 5, activa: true },
-  { id_ruta: 2, nombre: 'Norte',  num_paradas: 8, activa: true },
-  { id_ruta: 3, nombre: 'Sur',    num_paradas: 6, activa: true },
-]
-
 export default function GestionRutas() {
   const [rutas, setRutas] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -18,17 +12,18 @@ export default function GestionRutas() {
   const [form, setForm] = useState({ nombre: '', descripcion: '', activa: true })
   const [editandoId, setEditandoId] = useState(null)
 
-  useEffect(() => {
-    async function cargar() {
-      try {
-        const data = await api.get('/api/rutas')
-        setRutas(data)
-      } catch {
-        setRutas(RUTAS_EJEMPLO)
-      } finally {
-        setCargando(false)
-      }
+  async function cargar() {
+    try {
+      const data = await api.get('/api/rutas')
+      setRutas(data.rutas || [])
+    } catch {
+      console.error('Error cargando rutas')
+    } finally {
+      setCargando(false)
     }
+  }
+
+  useEffect(() => {
     cargar()
   }, [])
 
@@ -53,27 +48,29 @@ export default function GestionRutas() {
     setEditandoId(null)
   }
 
-  function guardar() {
+  async function guardar() {
     if (!form.nombre) return
 
-    if (modal === 'crear') {
-      const nueva = {
-        id_ruta: Date.now(),
-        ...form,
-        num_paradas: 0,
+    try {
+      if (modal === 'crear') {
+        await api.post('/api/rutas', form)
+      } else {
+        await api.patch(`/api/rutas/${editandoId}`, form)
       }
-      setRutas(prev => [...prev, nueva])
-    } else {
-      setRutas(prev =>
-        prev.map(r => r.id_ruta === editandoId ? { ...r, ...form } : r)
-      )
+      cerrarModal()
+      cargar()
+    } catch (err) {
+      alert(err.message || 'Error al guardar')
     }
-    cerrarModal()
   }
 
-  function eliminar(id) {
-    if (confirm('¿Estás seguro de eliminar esta ruta?')) {
-      setRutas(prev => prev.filter(r => r.id_ruta !== id))
+  async function eliminar(id) {
+    if (!confirm('¿Estás seguro de eliminar esta ruta?')) return
+    try {
+      await api.delete(`/api/rutas/${id}`)
+      cargar()
+    } catch (err) {
+      alert(err.message || 'Error al eliminar')
     }
   }
 

@@ -38,37 +38,37 @@ export default function App() {
 
           {/* Estudiante y admin */}
           <Route path="/inicio" element={
-            <RutaProtegida roles={['estudiante', 'administrador', 'conductor']}>
+            <RutaProtegida roles={['estudiante', 'admin', 'conductor']}>
               <Dashboard />
             </RutaProtegida>
           } />
 
           <Route path="/mapa" element={
-            <RutaProtegida roles={['estudiante', 'administrador']}>
+            <RutaProtegida roles={['estudiante', 'admin']}>
               <MapaTiempoReal />
             </RutaProtegida>
           } />
 
           <Route path="/rutas" element={
-            <RutaProtegida roles={['estudiante', 'administrador']}>
+            <RutaProtegida roles={['estudiante', 'admin']}>
               <Rutas />
             </RutaProtegida>
           } />
 
           <Route path="/buses" element={
-            <RutaProtegida roles={['estudiante', 'administrador']}>
+            <RutaProtegida roles={['estudiante', 'admin']}>
               <Buses />
             </RutaProtegida>
           } />
 
           <Route path="/notificaciones" element={
-            <RutaProtegida roles={['estudiante', 'conductor', 'administrador']}>
+            <RutaProtegida roles={['estudiante', 'conductor', 'admin']}>
               <Notificaciones />
             </RutaProtegida>
           } />
 
           <Route path="/perfil" element={
-            <RutaProtegida roles={['estudiante', 'conductor', 'administrador']}>
+            <RutaProtegida roles={['estudiante', 'conductor', 'admin']}>
               <Perfil />
             </RutaProtegida>
           } />
@@ -82,25 +82,25 @@ export default function App() {
 
           {/* Admin */}
           <Route path="/admin" element={
-            <RutaProtegida roles={['administrador']}>
+            <RutaProtegida roles={['admin']}>
               <PanelAdmin/>
             </RutaProtegida>
           } />
 
           <Route path="/admin/usuarios" element={
-            <RutaProtegida roles={['administrador']}>
+            <RutaProtegida roles={['admin']}>
               <GestionUsuarios/>
             </RutaProtegida>
           } />
 
           <Route path="/admin/buses" element={
-            <RutaProtegida roles={['administrador']}>
+            <RutaProtegida roles={['admin']}>
               <GestionBuses />
             </RutaProtegida>
           } />
 
           <Route path="/admin/rutas" element={
-            <RutaProtegida roles={['administrador']}>
+            <RutaProtegida roles={['admin']}>
               <GestionRutas/>
             </RutaProtegida>
           } />

@@ -7,12 +7,6 @@ import api from '../services/api'
 import socket from '../services/socket'
 import './Buses.css'
 
-const BUSES_EJEMPLO = [
-  { id_bus: 1, nombre: 'Bus #01', nombre_ruta: 'Centro', estado: 'en_recorrido', eta: '5 min' },
-  { id_bus: 2, nombre: 'Bus #02', nombre_ruta: 'Norte',  estado: 'fuera_de_servicio', eta: null },
-  { id_bus: 3, nombre: 'Bus #03', nombre_ruta: 'Sur',    estado: 'en_recorrido', eta: '12 min' },
-]
-
 export default function Buses() {
   const [buses, setBuses] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -22,9 +16,10 @@ export default function Buses() {
     async function cargar() {
       try {
         const data = await api.get('/api/buses')
-        setBuses(data)
+        setBuses(data.buses)
       } catch {
-        setBuses(BUSES_EJEMPLO)
+        console.error('Error cargando buses')
+        setBuses([])
       } finally {
         setCargando(false)
       }

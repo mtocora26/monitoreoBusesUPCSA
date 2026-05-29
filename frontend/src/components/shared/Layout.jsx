@@ -50,7 +50,7 @@ export default function Layout({ children, titulo }) {
   }
 
   const rol = usuario?.tipo_usuario
-  const nav = rol === 'administrador' ? navAdmin
+  const nav = rol === 'admin' ? navAdmin
              : rol === 'conductor'    ? navConductor
              : navEstudiante
 

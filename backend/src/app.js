@@ -7,6 +7,12 @@ import authRoutes       from './routes/authRoutes.js'
 import ubicacionRoutes from './routes/ubicacionRoutes.js'
 import { fileURLToPath } from 'url'
 import { dirname, join }  from 'path'
+import busRoutes       from './routes/busRoutes.js'
+import rutaRoutes      from './routes/rutaRoutes.js'
+import paradaRoutes    from './routes/paradaRoutes.js'
+import notificacionRoutes from './routes/notificacionRoutes.js'
+import usuarioRoutes from './routes/usuarioRoutes.js'
+
 
 const app = express()
 
@@ -33,6 +39,12 @@ app.get('/api/health', (_req, res) => {
 // ── Rutas de la API ──────────────────────────────────────────
 app.use('/api/auth', authRoutes)
 app.use('/api/ubicacion', ubicacionRoutes)
+app.use('/api/buses',     busRoutes)
+app.use('/api/rutas',     rutaRoutes)
+app.use('/api/paradas',   paradaRoutes)
+app.use('/api/ubicacion', ubicacionRoutes)
+app.use('/api/notificaciones', notificacionRoutes)
+app.use('/api/usuarios', usuarioRoutes)
 
 // ── Ruta de prueba de roles (temporal) ───────────────────────
 app.get('/api/test/admin', authMiddleware, roleMiddleware('admin'), (_req, res) => {

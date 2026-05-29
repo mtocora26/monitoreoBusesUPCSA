@@ -6,11 +6,6 @@ import Layout from '../components/shared/Layout'
 import api from '../services/api'
 import './Rutas.css'
 
-const RUTAS_EJEMPLO = [
-  { id_ruta: 1, nombre: 'Ruta 1 - Centro', num_paradas: 5, activa: true },
-  { id_ruta: 2, nombre: 'Ruta 2 - Norte',  num_paradas: 8, activa: true },
-  { id_ruta: 3, nombre: 'Ruta 3 - Sur',    num_paradas: 6, activa: false },
-]
 
 export default function Rutas() {
   const [rutas, setRutas] = useState([])
@@ -21,9 +16,15 @@ export default function Rutas() {
     async function cargar() {
       try {
         const data = await api.get('/api/rutas')
-        setRutas(data)
+        const rutasNormalizadas = data.rutas.map(r => ({
+            ...r,
+            activa: r.activa === 1 || r.activa === true
+          }))
+          setRutas(rutasNormalizadas)
+        
       } catch {
-        setRutas(RUTAS_EJEMPLO)
+        console.error('Error cargando rutas')
+        setRutas([])
       } finally {
         setCargando(false)
       }

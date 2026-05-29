@@ -19,6 +19,8 @@ export const io = new Server(httpServer, {
   },
 })
 
+app.set('io', io)
+
 // Registrar eventos de Socket.io
 busSocket(io)
 

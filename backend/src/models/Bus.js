@@ -1,63 +1,154 @@
 // src/models/Bus.js
-// Clase POO que representa la tabla bus
+// Esquema real: bus, bus_ruta, ubicacion_bus
 
 import { pool } from '../config/database.js'
 
-export class Bus {
+export const Bus = {
 
-  // Buscar bus por ID
-  static async porId(id_bus) {
-    const [rows] = await pool.query(
-      `SELECT b.*, u.nombre AS nombre_conductor
-       FROM bus b
-       LEFT JOIN usuario u ON b.id_conductor = u.id_usuario
-       WHERE b.id_bus = ?`,
-      [id_bus]
-    )
-    return rows[0] || null
-  }
-
-  // Verificar que un conductor tiene asignado ese bus
-  static async perteneceAConductor(id_bus, id_conductor) {
-    const [rows] = await pool.query(
-      `SELECT id_bus FROM bus
-       WHERE id_bus = ? AND id_conductor = ?`,
-      [id_bus, id_conductor]
-    )
-    return rows.length > 0
-  }
-
-  // Obtener la ruta asignada a un bus
-  static async rutaDeBus(id_bus) {
-    const [rows] = await pool.query(
-      `SELECT r.id_ruta, r.nombre, r.activa
-       FROM bus_ruta br
-       JOIN ruta r ON br.id_ruta = r.id_ruta
-       WHERE br.id_bus = ?`,
-      [id_bus]
-    )
-    return rows[0] || null
-  }
-
-  // Actualizar estado del bus
-  static async actualizarEstado(id_bus, estado) {
-    await pool.query(
-      `UPDATE bus SET estado = ? WHERE id_bus = ?`,
-      [estado, id_bus]
-    )
-  }
-
-  // Listar todos los buses con su ruta y conductor
-  static async todos() {
-    const [rows] = await pool.query(
-      `SELECT b.id_bus, b.placa, b.nombre, b.capacidad, b.estado,
-              u.nombre AS nombre_conductor,
-              r.id_ruta, r.nombre AS nombre_ruta
-       FROM bus b
-       LEFT JOIN usuario u ON b.id_conductor = u.id_usuario
-       LEFT JOIN bus_ruta br ON b.id_bus = br.id_bus
-       LEFT JOIN ruta r ON br.id_ruta = r.id_ruta`
-    )
+  // Todos los buses con su ruta asignada
+  async todos() {
+    const [rows] = await pool.query(`
+      SELECT
+        b.id_bus,
+        b.nombre,
+        b.placa,
+        b.capacidad,
+        b.estado,
+        b.id_conductor,
+        u.nombre      AS nombre_conductor,
+        r.id_ruta,
+        r.nombre      AS nombre_ruta
+      FROM bus b
+      LEFT JOIN usuario u   ON b.id_conductor = u.id_usuario
+      LEFT JOIN bus_ruta br  ON b.id_bus = br.id_bus
+      LEFT JOIN ruta r       ON br.id_ruta = r.id_ruta
+      ORDER BY b.nombre
+    `)
     return rows
-  }
+  },
+
+  // Buses activos con última posición GPS (#09, #13)
+  async activos() {
+    const [rows] = await pool.query(`
+      SELECT
+        b.id_bus,
+        b.nombre,
+        b.placa,
+        b.estado,
+        b.id_conductor,
+        u.nombre      AS nombre_conductor,
+        r.id_ruta,
+        r.nombre      AS nombre_ruta,
+        ub.latitud    AS lat,
+        ub.longitud   AS lng,
+        ub.fecha_hora AS ultima_actualizacion
+      FROM bus b
+      LEFT JOIN usuario u   ON b.id_conductor = u.id_usuario
+      LEFT JOIN bus_ruta br  ON b.id_bus = br.id_bus
+      LEFT JOIN ruta r       ON br.id_ruta = r.id_ruta
+      LEFT JOIN (
+        SELECT ub1.id_bus, ub1.latitud, ub1.longitud, ub1.fecha_hora
+        FROM ubicacion_bus ub1
+        INNER JOIN (
+          SELECT id_bus, MAX(fecha_hora) AS max_fh
+          FROM ubicacion_bus
+          GROUP BY id_bus
+        ) ub2 ON ub1.id_bus = ub2.id_bus AND ub1.fecha_hora = ub2.max_fh
+      ) ub ON b.id_bus = ub.id_bus
+      WHERE b.estado != 'inactivo' AND b.estado != 'fuera_de_servicio'
+      ORDER BY b.nombre
+    `)
+    return rows
+  },
+
+  // Todos los buses con posición (incluye inactivos)
+  async todosConPosicion() {
+    const [rows] = await pool.query(`
+      SELECT
+        b.id_bus,
+        b.nombre,
+        b.placa,
+        b.estado,
+        b.id_conductor,
+        u.nombre      AS nombre_conductor,
+        r.id_ruta,
+        r.nombre      AS nombre_ruta,
+        ub.latitud    AS lat,
+        ub.longitud   AS lng,
+        ub.fecha_hora AS ultima_actualizacion
+      FROM bus b
+      LEFT JOIN usuario u   ON b.id_conductor = u.id_usuario
+      LEFT JOIN bus_ruta br  ON b.id_bus = br.id_bus
+      LEFT JOIN ruta r       ON br.id_ruta = r.id_ruta
+      LEFT JOIN (
+        SELECT ub1.id_bus, ub1.latitud, ub1.longitud, ub1.fecha_hora
+        FROM ubicacion_bus ub1
+        INNER JOIN (
+          SELECT id_bus, MAX(fecha_hora) AS max_fh
+          FROM ubicacion_bus
+          GROUP BY id_bus
+        ) ub2 ON ub1.id_bus = ub2.id_bus AND ub1.fecha_hora = ub2.max_fh
+      ) ub ON b.id_bus = ub.id_bus
+      ORDER BY b.nombre
+    `)
+    return rows
+  },
+
+  // Bus por ID
+  async porId(id) {
+    const [rows] = await pool.query(`
+      SELECT
+        b.id_bus,
+        b.nombre,
+        b.placa,
+        b.estado,
+        b.id_conductor,
+        u.nombre     AS nombre_conductor,
+        r.id_ruta,
+        r.nombre     AS nombre_ruta
+      FROM bus b
+      LEFT JOIN usuario u  ON b.id_conductor = u.id_usuario
+      LEFT JOIN bus_ruta br ON b.id_bus = br.id_bus
+      LEFT JOIN ruta r      ON br.id_ruta = r.id_ruta
+      WHERE b.id_bus = ?
+    `, [id])
+    return rows[0] || null
+  },
+
+  // Bus asignado a un conductor
+  async porConductor(idusuario) {
+    const [rows] = await pool.query(`
+      SELECT
+        b.id_bus,
+        b.nombre,
+        b.placa,
+        b.estado,
+        r.id_ruta,
+        r.nombre AS nombre_ruta
+      FROM bus b
+      LEFT JOIN bus_ruta br ON b.id_bus = br.id_bus
+      LEFT JOIN ruta r      ON br.id_ruta = r.id_ruta
+      WHERE b.id_conductor = ?
+    `, [idusuario])
+    return rows[0] || null
+  },
+
+  // Actualizar estado
+  async actualizarEstado(idBus, estado) {
+    await pool.query(
+      'UPDATE bus SET estado = ? WHERE id_bus = ?',
+      [estado, idBus]
+    )
+  },
+
+  // Obtener ruta del bus
+  async obtenerRuta(idBus) {
+    const [rows] = await pool.query(`
+      SELECT r.*
+      FROM ruta r
+      INNER JOIN bus_ruta br ON r.id_ruta = br.id_ruta
+      WHERE br.id_bus = ?
+    `, [idBus])
+    return rows[0] || null
+  },
 }

@@ -35,7 +35,7 @@ export default function Login() {
       login(data.token, data.usuario)
 
       const rol = data.usuario.tipo_usuario
-      if (rol === 'administrador') navigate('/admin')
+      if (rol === 'admin') navigate('/admin')
       else if (rol === 'conductor') navigate('/conductor')
       else navigate('/inicio')
 

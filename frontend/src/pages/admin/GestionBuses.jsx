@@ -5,19 +5,6 @@ import Layout from '../../components/shared/Layout'
 import api from '../../services/api'
 import './GestionBuses.css'
 
-const BUSES_EJEMPLO = [
-  { id_bus: 1, nombre: 'Bus #01', placa: 'ABC-123', nombre_ruta: 'Centro', estado: 'en_recorrido' },
-  { id_bus: 2, nombre: 'Bus #02', placa: 'DEF-456', nombre_ruta: 'Norte',  estado: 'fuera_de_servicio' },
-  { id_bus: 3, nombre: 'Bus #03', placa: 'GHI-789', nombre_ruta: 'Sur',    estado: 'en_recorrido' },
-  { id_bus: 4, nombre: 'Bus #04', placa: 'JKL-012', nombre_ruta: 'Centro', estado: 'en_recorrido' },
-]
-
-const RUTAS_EJEMPLO = [
-  { id_ruta: 1, nombre: 'Centro' },
-  { id_ruta: 2, nombre: 'Norte' },
-  { id_ruta: 3, nombre: 'Sur' },
-]
-
 export default function GestionBuses() {
   const [buses, setBuses] = useState([])
   const [rutas, setRutas] = useState([])
@@ -26,22 +13,22 @@ export default function GestionBuses() {
   const [form, setForm] = useState({ nombre: '', placa: '', id_ruta: '', estado: 'en_recorrido' })
   const [editandoId, setEditandoId] = useState(null)
 
-  useEffect(() => {
-    async function cargar() {
-      try {
-        const [dataBuses, dataRutas] = await Promise.all([
-          api.get('/api/buses'),
-          api.get('/api/rutas'),
-        ])
-        setBuses(dataBuses)
-        setRutas(dataRutas)
-      } catch {
-        setBuses(BUSES_EJEMPLO)
-        setRutas(RUTAS_EJEMPLO)
-      } finally {
-        setCargando(false)
-      }
+  async function cargar() {
+    try {
+      const [dataBuses, dataRutas] = await Promise.all([
+        api.get('/api/buses'),
+        api.get('/api/rutas'),
+      ])
+      setBuses(dataBuses.buses || [])
+      setRutas(dataRutas.rutas || [])
+    } catch {
+      console.error('Error cargando datos')
+    } finally {
+      setCargando(false)
     }
+  }
+
+  useEffect(() => {
     cargar()
   }, [])
 
@@ -67,32 +54,29 @@ export default function GestionBuses() {
     setEditandoId(null)
   }
 
-  function guardar() {
+  async function guardar() {
     if (!form.nombre || !form.placa) return
 
-    const rutaSel = rutas.find(r => r.id_ruta === parseInt(form.id_ruta))
-
-    if (modal === 'crear') {
-      const nuevo = {
-        id_bus: Date.now(),
-        ...form,
-        nombre_ruta: rutaSel?.nombre || '—',
+    try {
+      if (modal === 'crear') {
+        await api.post('/api/buses', form)
+      } else {
+        await api.patch(`/api/buses/${editandoId}`, form)
       }
-      setBuses(prev => [...prev, nuevo])
-    } else {
-      setBuses(prev =>
-        prev.map(b => b.id_bus === editandoId
-          ? { ...b, ...form, nombre_ruta: rutaSel?.nombre || b.nombre_ruta }
-          : b
-        )
-      )
+      cerrarModal()
+      cargar()
+    } catch (err) {
+      alert(err.message || 'Error al guardar')
     }
-    cerrarModal()
   }
 
-  function eliminar(id) {
-    if (confirm('¿Estás seguro de eliminar este bus?')) {
-      setBuses(prev => prev.filter(b => b.id_bus !== id))
+  async function eliminar(id) {
+    if (!confirm('¿Estás seguro de eliminar este bus?')) return
+    try {
+      await api.delete(`/api/buses/${id}`)
+      cargar()
+    } catch (err) {
+      alert(err.message || 'Error al eliminar')
     }
   }
 

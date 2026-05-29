@@ -7,14 +7,6 @@ import Layout from '../../components/shared/Layout'
 import api from '../../services/api'
 import './GestionUsuarios.css'
 
-const USUARIOS_EJEMPLO = [
-  { id: 1, nombre: 'Juan Pérez',   correo: 'juan.perez@unicesar.edu.co',   tipo_usuario: 'estudiante',     activo: true },
-  { id: 2, nombre: 'María Gómez',  correo: 'maria.gomez@unicesar.edu.co',  tipo_usuario: 'administrador',  activo: true },
-  { id: 3, nombre: 'Carlos López', correo: 'carlos.lopez@unicesar.edu.co', tipo_usuario: 'conductor',      activo: true },
-  { id: 4, nombre: 'Ana Torres',   correo: 'ana.torres@unicesar.edu.co',   tipo_usuario: 'estudiante',     activo: false },
-  { id: 5, nombre: 'Pedro Ruiz',   correo: 'pedro.ruiz@unicesar.edu.co',   tipo_usuario: 'conductor',      activo: true },
-]
-
 export default function GestionUsuarios() {
   const [usuarios, setUsuarios] = useState([])
   const [cargando, setCargando] = useState(true)
@@ -22,19 +14,18 @@ export default function GestionUsuarios() {
   const [form, setForm] = useState({ nombre: '', correo: '', password: '', tipo_usuario: 'estudiante', activo: true })
   const [editandoId, setEditandoId] = useState(null)
 
-  useEffect(() => {
-    async function cargar() {
-      try {
-        const data = await api.get('/api/usuarios')
-        setUsuarios(data)
-      } catch {
-        setUsuarios(USUARIOS_EJEMPLO)
-      } finally {
-        setCargando(false)
-      }
+  async function cargar() {
+    try {
+      const data = await api.get('/api/usuarios')
+      setUsuarios(data.usuarios || [])
+    } catch {
+      console.error('Error cargando usuarios')
+    } finally {
+      setCargando(false)
     }
-    cargar()
-  }, [])
+  }
+
+  useEffect(() => { cargar() }, [])
 
   function abrirCrear() {
     setForm({ nombre: '', correo: '', password: '', tipo_usuario: 'estudiante', activo: true })
@@ -44,13 +35,13 @@ export default function GestionUsuarios() {
 
   function abrirEditar(usuario) {
     setForm({
-      nombre: usuario.nombre,
-      correo: usuario.correo,
-      password: '',
+      nombre:       usuario.nombre,
+      correo:       usuario.correo,
+      password:     '',
       tipo_usuario: usuario.tipo_usuario,
-      activo: usuario.activo,
+      activo:       usuario.activo === 1 || usuario.activo === true,
     })
-    setEditandoId(usuario.id)
+    setEditandoId(usuario.id_usuario)
     setModal('editar')
   }
 
@@ -61,26 +52,31 @@ export default function GestionUsuarios() {
 
   async function guardar() {
     if (!form.nombre || !form.correo) return
-
-    if (modal === 'crear') {
-      const nuevo = { ...form, id: Date.now() }
-      setUsuarios(prev => [...prev, nuevo])
-    } else {
-      setUsuarios(prev =>
-        prev.map(u => u.id === editandoId ? { ...u, ...form } : u)
-      )
+    try {
+      if (modal === 'crear') {
+        await api.post('/api/usuarios', form)
+      } else {
+        await api.patch(`/api/usuarios/${editandoId}`, form)
+      }
+      cerrarModal()
+      cargar()
+    } catch (err) {
+      alert(err.message || 'Error al guardar')
     }
-    cerrarModal()
   }
 
-  function eliminar(id) {
-    if (confirm('¿Estás seguro de eliminar este usuario?')) {
-      setUsuarios(prev => prev.filter(u => u.id !== id))
+  async function eliminar(id) {
+    if (!confirm('¿Estás seguro de eliminar este usuario?')) return
+    try {
+      await api.delete(`/api/usuarios/${id}`)
+      cargar()
+    } catch (err) {
+      alert(err.message || 'Error al eliminar')
     }
   }
 
   function textoRol(rol) {
-    if (rol === 'administrador') return 'Administrador'
+    if (rol === 'admin') return 'Administrador'
     if (rol === 'conductor') return 'Conductor'
     return 'Estudiante'
   }
@@ -112,7 +108,7 @@ export default function GestionUsuarios() {
                 </thead>
                 <tbody>
                   {usuarios.map(u => (
-                    <tr key={u.id}>
+                    <tr key={u.id_usuario}>
                       <td className="celda-nombre">{u.nombre}</td>
                       <td className="celda-correo">{u.correo}</td>
                       <td>{textoRol(u.tipo_usuario)}</td>
@@ -125,7 +121,7 @@ export default function GestionUsuarios() {
                         <button className="btn-accion btn-accion--editar" onClick={() => abrirEditar(u)}>
                           <FontAwesomeIcon icon={faPen} />
                         </button>
-                        <button className="btn-accion btn-accion--eliminar" onClick={() => eliminar(u.id)}>
+                        <button className="btn-accion btn-accion--eliminar" onClick={() => eliminar(u.id_usuario)}>
                           <FontAwesomeIcon icon={faTrash} />
                         </button>
                       </td>
@@ -187,7 +183,7 @@ export default function GestionUsuarios() {
                   >
                     <option value="estudiante">Estudiante</option>
                     <option value="conductor">Conductor</option>
-                    <option value="administrador">Administrador</option>
+                    <option value="admin">Administrador</option>
                   </select>
                 </div>
                 <div className="modal-campo">
