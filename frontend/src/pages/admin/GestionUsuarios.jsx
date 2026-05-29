@@ -1,0 +1,219 @@
+import { useEffect, useState } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faPlus, faPen, faTrash, faXmark, faFloppyDisk
+} from '@fortawesome/free-solid-svg-icons'
+import Layout from '../../components/shared/Layout'
+import api from '../../services/api'
+import './GestionUsuarios.css'
+
+const USUARIOS_EJEMPLO = [
+  { id: 1, nombre: 'Juan Pérez',   correo: 'juan.perez@unicesar.edu.co',   tipo_usuario: 'estudiante',     activo: true },
+  { id: 2, nombre: 'María Gómez',  correo: 'maria.gomez@unicesar.edu.co',  tipo_usuario: 'administrador',  activo: true },
+  { id: 3, nombre: 'Carlos López', correo: 'carlos.lopez@unicesar.edu.co', tipo_usuario: 'conductor',      activo: true },
+  { id: 4, nombre: 'Ana Torres',   correo: 'ana.torres@unicesar.edu.co',   tipo_usuario: 'estudiante',     activo: false },
+  { id: 5, nombre: 'Pedro Ruiz',   correo: 'pedro.ruiz@unicesar.edu.co',   tipo_usuario: 'conductor',      activo: true },
+]
+
+export default function GestionUsuarios() {
+  const [usuarios, setUsuarios] = useState([])
+  const [cargando, setCargando] = useState(true)
+  const [modal, setModal] = useState(null) // null | 'crear' | 'editar'
+  const [form, setForm] = useState({ nombre: '', correo: '', password: '', tipo_usuario: 'estudiante', activo: true })
+  const [editandoId, setEditandoId] = useState(null)
+
+  useEffect(() => {
+    async function cargar() {
+      try {
+        const data = await api.get('/api/usuarios')
+        setUsuarios(data)
+      } catch {
+        setUsuarios(USUARIOS_EJEMPLO)
+      } finally {
+        setCargando(false)
+      }
+    }
+    cargar()
+  }, [])
+
+  function abrirCrear() {
+    setForm({ nombre: '', correo: '', password: '', tipo_usuario: 'estudiante', activo: true })
+    setEditandoId(null)
+    setModal('crear')
+  }
+
+  function abrirEditar(usuario) {
+    setForm({
+      nombre: usuario.nombre,
+      correo: usuario.correo,
+      password: '',
+      tipo_usuario: usuario.tipo_usuario,
+      activo: usuario.activo,
+    })
+    setEditandoId(usuario.id)
+    setModal('editar')
+  }
+
+  function cerrarModal() {
+    setModal(null)
+    setEditandoId(null)
+  }
+
+  async function guardar() {
+    if (!form.nombre || !form.correo) return
+
+    if (modal === 'crear') {
+      const nuevo = { ...form, id: Date.now() }
+      setUsuarios(prev => [...prev, nuevo])
+    } else {
+      setUsuarios(prev =>
+        prev.map(u => u.id === editandoId ? { ...u, ...form } : u)
+      )
+    }
+    cerrarModal()
+  }
+
+  function eliminar(id) {
+    if (confirm('¿Estás seguro de eliminar este usuario?')) {
+      setUsuarios(prev => prev.filter(u => u.id !== id))
+    }
+  }
+
+  function textoRol(rol) {
+    if (rol === 'administrador') return 'Administrador'
+    if (rol === 'conductor') return 'Conductor'
+    return 'Estudiante'
+  }
+
+  return (
+    <Layout titulo="Gestión de usuarios">
+      <div className="gestion-page">
+        <div className="gestion-header">
+          <h2 className="gestion-titulo">Gestión de usuarios</h2>
+          <button className="gestion-btn-agregar" onClick={abrirCrear}>
+            <FontAwesomeIcon icon={faPlus} /> Agregar usuario
+          </button>
+        </div>
+
+        {cargando ? (
+          <p className="gestion-cargando">Cargando usuarios...</p>
+        ) : (
+          <>
+            <div className="gestion-tabla-wrap">
+              <table className="gestion-tabla">
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Correo</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usuarios.map(u => (
+                    <tr key={u.id}>
+                      <td className="celda-nombre">{u.nombre}</td>
+                      <td className="celda-correo">{u.correo}</td>
+                      <td>{textoRol(u.tipo_usuario)}</td>
+                      <td>
+                        <span className={`estado-badge ${u.activo ? 'estado--activo' : 'estado--inactivo'}`}>
+                          {u.activo ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                      <td className="celda-acciones">
+                        <button className="btn-accion btn-accion--editar" onClick={() => abrirEditar(u)}>
+                          <FontAwesomeIcon icon={faPen} />
+                        </button>
+                        <button className="btn-accion btn-accion--eliminar" onClick={() => eliminar(u.id)}>
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="gestion-conteo">Mostrando 1 a {usuarios.length} de {usuarios.length} usuarios</p>
+          </>
+        )}
+
+        {/* Modal */}
+        {modal && (
+          <div className="modal-overlay" onClick={cerrarModal}>
+            <div className="modal-card" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>{modal === 'crear' ? 'Agregar usuario' : 'Editar usuario'}</h3>
+                <button className="modal-cerrar" onClick={cerrarModal}>
+                  <FontAwesomeIcon icon={faXmark} />
+                </button>
+              </div>
+
+              <div className="modal-body">
+                <div className="modal-campo">
+                  <label>Nombre</label>
+                  <input
+                    type="text"
+                    value={form.nombre}
+                    onChange={e => setForm({ ...form, nombre: e.target.value })}
+                    placeholder="Nombre completo"
+                  />
+                </div>
+                <div className="modal-campo">
+                  <label>Correo</label>
+                  <input
+                    type="email"
+                    value={form.correo}
+                    onChange={e => setForm({ ...form, correo: e.target.value })}
+                    placeholder="correo@unicesar.edu.co"
+                  />
+                </div>
+                {modal === 'crear' && (
+                  <div className="modal-campo">
+                    <label>Contraseña</label>
+                    <input
+                      type="password"
+                      value={form.password}
+                      onChange={e => setForm({ ...form, password: e.target.value })}
+                      placeholder="Mínimo 8 caracteres"
+                    />
+                  </div>
+                )}
+                <div className="modal-campo">
+                  <label>Rol</label>
+                  <select
+                    value={form.tipo_usuario}
+                    onChange={e => setForm({ ...form, tipo_usuario: e.target.value })}
+                  >
+                    <option value="estudiante">Estudiante</option>
+                    <option value="conductor">Conductor</option>
+                    <option value="administrador">Administrador</option>
+                  </select>
+                </div>
+                <div className="modal-campo">
+                  <label>Estado</label>
+                  <select
+                    value={form.activo ? 'true' : 'false'}
+                    onChange={e => setForm({ ...form, activo: e.target.value === 'true' })}
+                  >
+                    <option value="true">Activo</option>
+                    <option value="false">Inactivo</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button className="modal-btn modal-btn--cancelar" onClick={cerrarModal}>
+                  Cancelar
+                </button>
+                <button className="modal-btn modal-btn--guardar" onClick={guardar}>
+                  <FontAwesomeIcon icon={faFloppyDisk} /> Guardar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </Layout>
+  )
+}
