@@ -4,6 +4,7 @@ import RutaProtegida from './components/shared/RutaProtegida'
 
 // Pages — las iremos creando en los siguientes issues
 import Login from './pages/Login'
+import Registro from './pages/Registro'
 import Layout from './components/shared/Layout'
 import Dashboard from './pages/Dashboard'
 import MapaTiempoReal from './pages/MapaTiempoReal'
@@ -34,7 +35,8 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           {/* Pública */}
-          <Route path="/login" element={<Login />} />
+          <Route path="/login"    element={<Login />} />
+          <Route path="/registro" element={<Registro />} />
 
           {/* Estudiante y admin */}
           <Route path="/inicio" element={

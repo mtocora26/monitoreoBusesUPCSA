@@ -37,4 +37,8 @@ export const env = {
     expiresIn:   process.env.JWT_EXPIRES_IN,
   },
   clientUrl:     process.env.CLIENT_URL,
+  allowedOrigins: process.env.CLIENT_URL
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean),
 }

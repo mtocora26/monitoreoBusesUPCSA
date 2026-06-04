@@ -1,12 +1,11 @@
 import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Popup, Polyline, ZoomControl, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
-  faMagnifyingGlass, faBus, faRoute,
-  faCircleCheck, faCircleXmark, faClock,
-  faLocationDot, faXmark
+  faMagnifyingGlass, faBus, faClock,
+  faLocationDot, faChevronDown, faChevronUp
 } from '@fortawesome/free-solid-svg-icons'
 import Layout from '../components/shared/Layout'
 import socket from '../services/socket'
@@ -71,6 +70,9 @@ export default function MapaTiempoReal() {
   const [busqueda, setBusqueda]                 = useState('')
   const [filtro, setFiltro]                     = useState('todos')
   const [centro, setCentro]                     = useState([8.3086, -73.6194])
+  const [panelExpandido, setPanelExpandido]     = useState(
+    () => sessionStorage.getItem('mapaPanel') === 'abierto'
+  )
 
   const ultimaUbicacion = useRef({})
   const [searchParams] = useSearchParams()
@@ -235,7 +237,7 @@ export default function MapaTiempoReal() {
 
   if (cargando) {
     return (
-      <Layout titulo="Mapa en tiempo real">
+      <Layout titulo="Mapa en tiempo real" sinPadding>
         <div className="mapa-cargando">
           <div className="mapa-cargando-spinner" />
           <p>Cargando mapa...</p>
@@ -245,7 +247,7 @@ export default function MapaTiempoReal() {
   }
 
   return (
-    <Layout titulo="Mapa en tiempo real">
+    <Layout titulo="Mapa en tiempo real" sinPadding>
       <div className="mapa-page">
 
         {/* ── Barra superior ── */}
@@ -285,21 +287,20 @@ export default function MapaTiempoReal() {
           </select>
         </div>
 
-        {/* ── Contenido: mapa + panel ── */}
+        {/* ── Mapa Leaflet (full screen) ── */}
         <div className="mapa-contenido">
-
-          {/* ── Mapa Leaflet (#09) ── */}
           <div className="mapa-leaflet">
             <MapContainer
               center={centro}
               zoom={15}
               style={{ width: '100%', height: '100%' }}
-              zoomControl={true}
+              zoomControl={false}
             >
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution="© OpenStreetMap"
               />
+              <ZoomControl position="bottomleft" />
               <ControlMapa centro={centro} />
 
               {/* Polilínea de la ruta (#14) */}
@@ -355,9 +356,10 @@ export default function MapaTiempoReal() {
               }
             </MapContainer>
           </div>
+        </div>
 
-          {/* ── Panel lateral ── */}
-          <div className="mapa-panel">
+        {/* ── Panel flotante ── */}
+        <div className="mapa-panel">
 
             {/* Info bus seleccionado (#11) */}
             {busSeleccionado && (
@@ -466,49 +468,55 @@ export default function MapaTiempoReal() {
               </div>
             )}
 
-            {/* Panel vacío — lista de buses (#13) */}
+            {/* Panel compacto — lista de buses */}
             {!busSeleccionado && !paradaSeleccionada && (
-              <div className="mapa-panel-vacio">
-                <FontAwesomeIcon icon={faBus} className="mapa-panel-icono" />
-                <p>
-                  {busesFiltrados.length > 0
-                    ? `${busesFiltrados.filter(b => b.lat && b.lng).length} bus(es) en el mapa`
-                    : 'No hay buses activos'
-                  }
-                </p>
-                <p style={{ fontSize: 12, marginTop: 4 }}>
-                  Haz clic en un bus o parada para ver su información
-                </p>
-                {/* Lista rápida de buses activos */}
-                {busesFiltrados.filter(b => b.lat && b.lng).map(b => (
-                  <div
-                    key={b.id_bus}
-                    onClick={() => setBusSeleccionado(b)}
-                    style={{
-                      width: '100%', textAlign: 'left', padding: '10px 12px',
-                      marginTop: 8, background: 'var(--fondo)', borderRadius: 8,
-                      cursor: 'pointer', border: '1px solid var(--borde)',
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-                    }}
-                  >
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>{b.nombre}</div>
-                      <div style={{ fontSize: 12, color: 'var(--texto-suave)' }}>{b.nombre_ruta || 'Sin ruta'}</div>
-                    </div>
-                    <span
-                      style={{
-                        background: colorEstado(b.estado), color: '#fff',
-                        fontSize: 11, padding: '2px 8px', borderRadius: 12, fontWeight: 600
-                      }}
-                    >
-                      {textoEstado(b.estado)}
+              <div className="mapa-panel-compacto">
+                <button
+                  className="mapa-panel-header"
+                  onClick={() => setPanelExpandido(v => {
+                    const nuevo = !v
+                    sessionStorage.setItem('mapaPanel', nuevo ? 'abierto' : 'cerrado')
+                    return nuevo
+                  })}
+                >
+                  <div className="mapa-panel-header-left">
+                    <FontAwesomeIcon icon={faBus} />
+                    <span>
+                      {busesFiltrados.filter(b => b.lat && b.lng).length} buses en ruta
                     </span>
                   </div>
-                ))}
+                  <FontAwesomeIcon icon={panelExpandido ? faChevronDown : faChevronUp} />
+                </button>
+
+                {panelExpandido && (
+                  <div className="mapa-panel-lista">
+                    {busesFiltrados.filter(b => b.lat && b.lng).length === 0 ? (
+                      <p className="mapa-panel-sin-buses">Sin buses con ubicación activa</p>
+                    ) : (
+                      busesFiltrados.filter(b => b.lat && b.lng).map(b => (
+                        <div
+                          key={b.id_bus}
+                          className="mapa-bus-item"
+                          onClick={() => setBusSeleccionado(b)}
+                        >
+                          <div>
+                            <div className="mapa-bus-nombre">{b.nombre}</div>
+                            <div className="mapa-bus-ruta">{b.nombre_ruta || 'Sin ruta'}</div>
+                          </div>
+                          <span
+                            className="mapa-info-badge"
+                            style={{ background: colorEstado(b.estado) }}
+                          >
+                            {textoEstado(b.estado)}
+                          </span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
-        </div>
       </div>
     </Layout>
   )

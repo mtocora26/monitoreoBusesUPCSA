@@ -22,7 +22,14 @@ app.use(express.static(join(__dirname, '../public')))
 
 // ── Middlewares globales ─────────────────────────────────────
 app.use(cors({
-  origin:      env.clientUrl,
+  origin: (origin, callback) => {
+    // Permite herramientas sin Origin (Postman/curl) y los origins configurados.
+    if (!origin) return callback(null, true)
+    if (env.allowedOrigins.includes('*') || env.allowedOrigins.includes(origin)) {
+      return callback(null, true)
+    }
+    return callback(new Error(`Origin no permitido por CORS: ${origin}`))
+  },
   credentials: true,
 }))
 app.use(express.json())
@@ -42,7 +49,6 @@ app.use('/api/ubicacion', ubicacionRoutes)
 app.use('/api/buses',     busRoutes)
 app.use('/api/rutas',     rutaRoutes)
 app.use('/api/paradas',   paradaRoutes)
-app.use('/api/ubicacion', ubicacionRoutes)
 app.use('/api/notificaciones', notificacionRoutes)
 app.use('/api/usuarios', usuarioRoutes)
 

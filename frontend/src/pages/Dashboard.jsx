@@ -5,16 +5,24 @@ import Layout from '../components/shared/Layout'
 import api from '../services/api'
 import './Dashboard.css'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faBus, faRoute, faClock,
-  faLocationDot, faMap
-} from '@fortawesome/free-solid-svg-icons'
+import { faBus, faRoute, faClock } from '@fortawesome/free-solid-svg-icons'
+import { MapContainer, TileLayer, Marker } from 'react-leaflet'
+import L from 'leaflet'
+
+const iconoBusMini = L.divIcon({
+  className: '',
+  html: `<div style="font-size:20px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,0.3))">🚌</div>`,
+  iconSize: [24, 24],
+  iconAnchor: [12, 12],
+})
 
 export default function Dashboard() {
   const { usuario } = useAuth()
   const navigate = useNavigate()
   const [stats, setStats] = useState({ buses: 0, rutas: 0, proximoBus: '--' })
+  const [busesActivos, setBusesActivos] = useState([])
   const [cargando, setCargando] = useState(true)
+  const [backendOk, setBackendOk] = useState(false)
 
   useEffect(() => {
     async function cargarStats() {
@@ -23,16 +31,18 @@ export default function Dashboard() {
           api.get('/api/buses'),
           api.get('/api/rutas'),
         ])
-        const busesActivos = buses.filter(b => b.estado === 'en_recorrido').length
+        const activos = buses.filter(b => b.estado === 'en_recorrido')
         const rutasActivas = rutas.filter(r => r.activa).length
+        setBusesActivos(activos.filter(b => b.lat && b.lng))
         setStats({
-          buses: busesActivos,
+          buses: activos.length,
           rutas: rutasActivas,
-          proximoBus: '10 min',
+          proximoBus: activos.length > 0 ? '~10 min' : '—',
         })
+        setBackendOk(true)
       } catch {
-        // Backend no disponible aún — mostramos datos de ejemplo
-        setStats({ buses: 5, rutas: 3, proximoBus: '10 min' })
+        setStats({ buses: 0, rutas: 0, proximoBus: '—' })
+        setBackendOk(false)
       } finally {
         setCargando(false)
       }
@@ -41,7 +51,7 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <Layout titulo="Bienvenido al Sistema de Monitoreo de Rutas">
+    <Layout titulo="Sistema de Monitoreo de Rutas">
       <div className="dash">
 
         {/* Saludo */}
@@ -93,21 +103,31 @@ export default function Dashboard() {
         {/* Mapa preview */}
         <section className="dash-seccion">
           <h3 className="dash-seccion-titulo">Mapa en tiempo real</h3>
-          <div className="dash-mapa-preview">
-            <div className="dash-mapa-ilustracion">
-              <svg viewBox="0 0 300 140" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M30 110 Q80 60 130 80 Q180 100 220 50 Q250 20 270 30"
-                  stroke="#1e6b2e" strokeWidth="3" strokeDasharray="8 4" fill="none"/>
-                <circle cx="130" cy="80" r="6" fill="#1e6b2e"/>
-                <text x="120" y="100" fontSize="22">🚌</text>
-              </svg>
-            </div>
-            <button
-              className="dash-mapa-btn"
-              onClick={() => navigate('/mapa')}
+          <div className="dash-mapa-preview" onClick={() => navigate('/mapa')} style={{ cursor: 'pointer' }}>
+            <MapContainer
+              center={[8.3086, -73.6194]}
+              zoom={14}
+              style={{ width: '100%', height: '100%' }}
+              zoomControl={false}
+              dragging={false}
+              scrollWheelZoom={false}
+              doubleClickZoom={false}
+              attributionControl={false}
+              className="dash-mapa-leaflet"
             >
-              Ver mapa completo
-            </button>
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              {busesActivos.map(b => (
+                <Marker key={b.id_bus} position={[b.lat, b.lng]} icon={iconoBusMini} />
+              ))}
+            </MapContainer>
+            <div className="dash-mapa-overlay">
+              {!backendOk && (
+                <span className="dash-mapa-offline">Sin conexión al servidor</span>
+              )}
+              <button className="dash-mapa-btn" onClick={() => navigate('/mapa')}>
+                Ver mapa completo
+              </button>
+            </div>
           </div>
         </section>
 

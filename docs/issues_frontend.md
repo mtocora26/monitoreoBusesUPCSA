@@ -337,7 +337,7 @@ Implementar `pages/admin/GestionRutas.jsx`:
 **Issues backend relacionados:** #07, #08, #15
 
 **Descripción:**
-Implementar `pages/conductor/MiRecorrido.jsx` (versión React del `conductor.html` ya existente):
+Implementar `pages/conductor/MiRecorrido.jsx`:
 - Sidebar exclusivo del conductor: Inicio, Mi recorrido, Notificaciones, Cerrar sesión
 - Sección "Mi recorrido" con:
   - Ilustración/mapa pequeño del bus en ruta

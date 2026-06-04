@@ -14,9 +14,9 @@ const httpServer = createServer(app)
 // ── Configurar Socket.io ─────────────────────────────────────
 export const io = new Server(httpServer, {
   cors: {
-    origin:      env.clientUrl,
+    origin: env.allowedOrigins,
     credentials: true,
-  },
+  }
 })
 
 app.set('io', io)

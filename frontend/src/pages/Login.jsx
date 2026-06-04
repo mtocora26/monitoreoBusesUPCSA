@@ -117,7 +117,9 @@ export default function Login() {
         <p className="login-link">¿Olvidó su contraseña?</p>
         <p className="login-link">
           ¿No tienes cuenta?{' '}
-          <span className="login-link--verde">Regístrate aquí</span>
+          <span className="login-link--verde" onClick={() => navigate('/registro')}>
+            Regístrate aquí
+          </span>
         </p>
 
         <div className="login-footer">
