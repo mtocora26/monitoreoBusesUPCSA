@@ -236,3 +236,73 @@
 }
 
 .modal-btn--guardar:hover { background: #145220; }
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE MÓVIL
+══════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .gestion-titulo {
+    font-size: 19px;
+  }
+
+  .gestion-btn-agregar {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  /* Tabla en móvil: elimina columnas menos críticas via clase en el HTML
+     o simplemente permite scroll horizontal más cómodo */
+  .gestion-tabla-wrap {
+    border-radius: 10px;
+  }
+
+  .gestion-tabla th,
+  .gestion-tabla td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* Modal ocupa toda la pantalla en móvil */
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal-card {
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    max-height: 90vh;
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+  }
+
+  .modal-header h3 {
+    font-size: 16px;
+  }
+
+  .modal-body {
+    padding: 16px 20px;
+    gap: 14px;
+  }
+
+  .modal-footer {
+    padding: 12px 20px;
+    /* Botones en columna en pantallas muy pequeñas */
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .modal-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 12px 10px;
+  }
+
+  .modal-campo input,
+  .modal-campo select {
+    padding: 11px 12px;
+    font-size: 16px; /* Evita zoom en iOS */
+  }
+}

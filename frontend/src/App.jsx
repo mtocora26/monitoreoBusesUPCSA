@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { useAuth } from './context/AuthContext'
 import RutaProtegida from './components/shared/RutaProtegida'
 
 // Pages — las iremos creando en los siguientes issues
@@ -29,6 +30,17 @@ const Placeholder = ({ nombre }) => {
   )
 }
 
+function InicioPorRol() {
+  const { usuario } = useAuth()
+  if (usuario?.tipo_usuario === 'admin') {
+    return <Navigate to="/admin" replace />
+  }
+  if (usuario?.tipo_usuario === 'conductor') {
+    return <Navigate to="/conductor" replace />
+  }
+  return <Dashboard />
+}
+
 export default function App() {
   return (
     <AuthProvider>
@@ -41,7 +53,7 @@ export default function App() {
           {/* Estudiante y admin */}
           <Route path="/inicio" element={
             <RutaProtegida roles={['estudiante', 'admin', 'conductor']}>
-              <Dashboard />
+              <InicioPorRol />
             </RutaProtegida>
           } />
 

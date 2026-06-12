@@ -8,19 +8,24 @@ import './GestionBuses.css'
 export default function GestionBuses() {
   const [buses, setBuses] = useState([])
   const [rutas, setRutas] = useState([])
+  const [usuarios, setUsuarios] = useState([])
   const [cargando, setCargando] = useState(true)
   const [modal, setModal] = useState(null)
-  const [form, setForm] = useState({ nombre: '', placa: '', id_ruta: '', estado: 'en_recorrido' })
+  const [form, setForm] = useState({ nombre: '', placa: '', id_ruta: '', id_conductor: '', estado: 'en_recorrido' })
   const [editandoId, setEditandoId] = useState(null)
+
+  const conductores = usuarios.filter(u => u.tipo_usuario === 'conductor' && u.activo)
 
   async function cargar() {
     try {
-      const [dataBuses, dataRutas] = await Promise.all([
+      const [dataBuses, dataRutas, dataUsuarios] = await Promise.all([
         api.get('/api/buses'),
         api.get('/api/rutas'),
+        api.get('/api/usuarios'),
       ])
       setBuses(dataBuses.buses || [])
       setRutas(dataRutas.rutas || [])
+      setUsuarios(dataUsuarios.usuarios || [])
     } catch {
       console.error('Error cargando datos')
     } finally {
@@ -33,7 +38,7 @@ export default function GestionBuses() {
   }, [])
 
   function abrirCrear() {
-    setForm({ nombre: '', placa: '', id_ruta: '', estado: 'en_recorrido' })
+    setForm({ nombre: '', placa: '', id_ruta: '', id_conductor: '', estado: 'en_recorrido' })
     setEditandoId(null)
     setModal('crear')
   }
@@ -43,6 +48,7 @@ export default function GestionBuses() {
       nombre: bus.nombre,
       placa: bus.placa,
       id_ruta: bus.id_ruta || '',
+      id_conductor: bus.id_conductor || '',
       estado: bus.estado,
     })
     setEditandoId(bus.id_bus)
@@ -112,6 +118,7 @@ export default function GestionBuses() {
                   <tr>
                     <th>Bus</th>
                     <th>Ruta asignada</th>
+                    <th>Conductor</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                   </tr>
@@ -120,7 +127,8 @@ export default function GestionBuses() {
                   {buses.map(b => (
                     <tr key={b.id_bus}>
                       <td className="celda-nombre">{b.nombre}</td>
-                      <td>{b.nombre_ruta}</td>
+                      <td>{b.nombre_ruta || 'Sin ruta'}</td>
+                      <td>{b.nombre_conductor || 'Sin conductor'}</td>
                       <td>
                         <span className={`estado-badge ${claseEstado(b.estado)}`}>
                           {textoEstado(b.estado)}
@@ -181,6 +189,18 @@ export default function GestionBuses() {
                     <option value="">Seleccionar ruta</option>
                     {rutas.map(r => (
                       <option key={r.id_ruta} value={r.id_ruta}>{r.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="modal-campo">
+                  <label>Conductor asignado</label>
+                  <select
+                    value={form.id_conductor}
+                    onChange={e => setForm({ ...form, id_conductor: e.target.value })}
+                  >
+                    <option value="">Sin conductor</option>
+                    {conductores.map(c => (
+                      <option key={c.id_usuario} value={c.id_usuario}>{c.nombre}</option>
                     ))}
                   </select>
                 </div>

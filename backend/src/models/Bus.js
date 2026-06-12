@@ -55,7 +55,11 @@ export const Bus = {
           GROUP BY id_bus
         ) ub2 ON ub1.id_bus = ub2.id_bus AND ub1.fecha_hora = ub2.max_fh
       ) ub ON b.id_bus = ub.id_bus
-      WHERE b.estado != 'inactivo' AND b.estado != 'fuera_de_servicio'
+      WHERE b.estado = 'en_recorrido'
+        AND b.id_conductor IS NOT NULL
+        AND u.activo = 1
+        AND ub.fecha_hora IS NOT NULL
+        AND ub.fecha_hora >= (NOW() - INTERVAL 2 MINUTE)
       ORDER BY b.nombre
     `)
     return rows
@@ -126,8 +130,12 @@ export const Bus = {
         r.id_ruta,
         r.nombre AS nombre_ruta
       FROM bus b
-      LEFT JOIN bus_ruta br ON b.id_bus = br.id_bus
-      LEFT JOIN ruta r      ON br.id_ruta = r.id_ruta
+      LEFT JOIN (
+        SELECT id_bus, MAX(id_ruta) AS id_ruta
+        FROM bus_ruta
+        GROUP BY id_bus
+      ) br ON b.id_bus = br.id_bus
+      LEFT JOIN ruta r ON br.id_ruta = r.id_ruta
       WHERE b.id_conductor = ?
     `, [idusuario])
     return rows[0] || null

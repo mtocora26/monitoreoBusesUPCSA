@@ -84,12 +84,32 @@
   color: var(--texto-suave);
 }
 
+/* Valor más pequeño para texto largo (ej: "Activo") */
+.dash-tarjeta-valor--sm {
+  font-size: 22px;
+}
+
+/* Sub-label con ruta: truncado elegante */
+.dash-tarjeta-sub--ruta {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+
+/* Icono en tono gris para estado inactivo */
+.dash-tarjeta-icono--gris {
+  background: #f0f0f0;
+  color: #999;
+}
+
 /* Mapa preview */
 .dash-mapa-preview {
   border-radius: 14px;
   overflow: hidden;
   border: 1px solid var(--borde);
-  height: 220px;
+  height: 240px;
   position: relative;
 }
 
@@ -128,6 +148,51 @@
 .dash-mapa-btn:hover {
   background: #1e6b2e;
   color: #fff;
+}
+
+/* Chip de estado flotante sobre el mapa */
+.dash-mapa-estado-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  align-self: flex-start; /* arriba a la izquierda del overlay */
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+
+.dash-mapa-estado-chip--activo {
+  background: rgba(30, 107, 46, 0.88);
+  color: #fff;
+}
+
+.dash-mapa-estado-chip--inactivo {
+  background: rgba(50, 50, 50, 0.78);
+  color: #ddd;
+}
+
+.dash-mapa-estado-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.dash-mapa-estado-chip--activo .dash-mapa-estado-dot {
+  background: #a5d6a7;
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.55; transform: scale(0.7); }
 }
 
 .dash-mapa-offline {
@@ -177,29 +242,51 @@
     max-width: 100%;
   }
 
+  /* En móvil las 3 tarjetas se ven en 2+1 o 1 columna */
   .dash-tarjetas {
     grid-template-columns: 1fr 1fr !important;
     gap: 10px;
   }
 
+  /* La tercera tarjeta (estado) ocupa las 2 columnas */
+  .dash-tarjeta:last-child {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+  }
+
   .dash-tarjeta {
-    padding: 14px 12px;
+    padding: 12px 14px;
     gap: 10px;
   }
 
   .dash-tarjeta-icono {
-    width: 42px;
-    height: 42px;
-    font-size: 18px;
+    width: 40px;
+    height: 40px;
+    font-size: 17px;
     border-radius: 10px;
+    flex-shrink: 0;
   }
 
   .dash-tarjeta-valor {
     font-size: 22px;
   }
 
+  .dash-tarjeta-valor--sm {
+    font-size: 18px;
+  }
+
   .dash-tarjeta-label {
     font-size: 12px;
+  }
+
+  .dash-tarjeta-sub--ruta {
+    max-width: 180px;
+  }
+
+  .dash-mapa-preview {
+    height: 200px;
+    border-radius: 12px;
   }
 
   .dash-seccion-titulo {
@@ -218,12 +305,21 @@
   }
 
   .dash-seccion {
-    margin-bottom: 20px;
+    margin-bottom: 18px;
+  }
+
+  .dash-mapa-btn {
+    font-size: 12px;
+    padding: 6px 12px;
   }
 }
 
 @media (max-width: 400px) {
   .dash-tarjetas {
     grid-template-columns: 1fr !important;
+  }
+
+  .dash-tarjeta:last-child {
+    grid-column: auto;
   }
 }

@@ -25,6 +25,15 @@ export class Usuario {
     return rows[0] || null
   }
 
+  // Buscar usuario por nombre_usuario (usado en login universitario)
+  static async porNombreUsuario(nombre_usuario) {
+    const [rows] = await pool.query(
+      `SELECT * FROM usuario WHERE nombre_usuario = ? AND activo = 1`,
+      [nombre_usuario]
+    )
+    return rows[0] || null
+  }
+
   // consultarRutas() — diagrama de clases
   // Retorna las rutas disponibles para el usuario
   static async consultarRutas() {
@@ -90,7 +99,7 @@ export class Usuario {
   // Listar todos los usuarios (para admin)
   static async todos() {
     const [rows] = await pool.query(
-      `SELECT id_usuario, nombre, correo, tipo_usuario, activo, fecha_creacion
+      `SELECT id_usuario, nombre, nombre_usuario, correo, tipo_usuario, activo, fecha_creacion
        FROM usuario`
     )
     return rows

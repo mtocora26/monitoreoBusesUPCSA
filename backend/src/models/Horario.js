@@ -29,4 +29,36 @@ export class Horario {
     )
     return rows
   }
+
+  static async crear({ id_ruta, hora_salida, hora_llegada }) {
+    const [result] = await pool.query(
+      `INSERT INTO horario (id_ruta, hora_salida, hora_llegada)
+       VALUES (?, ?, ?)`,
+      [id_ruta, hora_salida, hora_llegada]
+    )
+    return result.insertId
+  }
+
+  static async editar(id_horario, { hora_salida, hora_llegada }) {
+    await pool.query(
+      `UPDATE horario
+       SET hora_salida = ?, hora_llegada = ?
+       WHERE id_horario = ?`,
+      [hora_salida, hora_llegada, id_horario]
+    )
+  }
+
+  static async eliminar(id_horario) {
+    await pool.query('DELETE FROM horario WHERE id_horario = ?', [id_horario])
+  }
+
+  static async porId(id_horario) {
+    const [rows] = await pool.query(
+      `SELECT id_horario, id_ruta, hora_salida, hora_llegada
+       FROM horario
+       WHERE id_horario = ?`,
+      [id_horario]
+    )
+    return rows[0] || null
+  }
 }

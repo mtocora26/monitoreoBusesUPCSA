@@ -1,7 +1,9 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import socket from '../services/socket'
+import api from '../services/api'
 
 const AuthContext = createContext(null)
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000
 
 function parseJwt(token) {
   try {
@@ -40,18 +42,22 @@ export function AuthProvider({ children }) {
   const [cargando, setCargando] = useState(true)
 
   useEffect(() => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    const payload = parseJwt(token)
-    if (payload && payload.exp * 1000 > Date.now()) {
-      setUsuario(payload)
-      socket.connect()
-    } else {
-      localStorage.removeItem('token')
+    const token = localStorage.getItem('token')
+    if (token) {
+      const payload = parseJwt(token)
+      if (payload && payload.exp * 1000 > Date.now()) {
+        // Preferir el objeto de usuario guardado (tiene nombre_usuario y campos actualizados)
+        // y caer al payload del JWT solo si no hay nada guardado
+        const guardado = getUsuarioGuardado()
+        setUsuario(guardado || payload)
+        socket.connect()
+      } else {
+        localStorage.removeItem('token')
+        localStorage.removeItem('usuario')
+      }
     }
-  }
-  setCargando(false)
-}, [])
+    setCargando(false)
+  }, [])
 
   function login(token, userData) {
     localStorage.setItem('token', token)
@@ -59,19 +65,60 @@ export function AuthProvider({ children }) {
     if (usuarioNormalizado) {
       localStorage.setItem('usuario', JSON.stringify(usuarioNormalizado))
       setUsuario(usuarioNormalizado)
+      socket.connect()
     } else {
-      localStorage.removeItem('usuario')
-      setUsuario(null)
+      // No debería pasar, pero si el backend devuelve algo inesperado
+      // usamos el payload del JWT como fallback
+      const payload = parseJwt(token)
+      if (payload) {
+        localStorage.setItem('usuario', JSON.stringify(payload))
+        setUsuario(payload)
+        socket.connect()
+      }
     }
-    socket.connect()
   }
 
-  function logout() {
+  async function logout() {
+    try {
+      await api.post('/api/auth/logout', {})
+    } catch {
+      // Si falla (token ya expirado) igual limpiamos localmente
+    }
     localStorage.removeItem('token')
     localStorage.removeItem('usuario')
     setUsuario(null)
     socket.disconnect()
   }
+
+  useEffect(() => {
+    if (!usuario) return
+
+    let timer = null
+
+    const reiniciarTemporizador = () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        logout()
+      }, INACTIVITY_TIMEOUT_MS)
+    }
+
+    const eventosActividad = [
+      'click', 'keydown', 'mousemove', 'scroll', 'touchstart',
+    ]
+
+    eventosActividad.forEach((evento) => {
+      window.addEventListener(evento, reiniciarTemporizador, { passive: true })
+    })
+
+    reiniciarTemporizador()
+
+    return () => {
+      if (timer) clearTimeout(timer)
+      eventosActividad.forEach((evento) => {
+        window.removeEventListener(evento, reiniciarTemporizador)
+      })
+    }
+  }, [usuario])
 
   function actualizarUsuario(cambios) {
     setUsuario(prev => {
@@ -89,5 +136,11 @@ export function AuthProvider({ children }) {
 }
 
 export function useAuth() {
-  return useContext(AuthContext)
+  return useContext(AuthContext) || {
+    usuario: null,
+    cargando: false,
+    login: () => {},
+    logout: () => {},
+    actualizarUsuario: () => {},
+  }
 }

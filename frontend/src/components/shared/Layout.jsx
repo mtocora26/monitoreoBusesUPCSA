@@ -1,16 +1,97 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useState, useEffect, useRef } from 'react'
+
+let audioCtx = null
+let audioUnlocked = false
+
+function ensureAudioUnlockListeners() {
+  if (typeof window === 'undefined' || audioUnlocked) return
+
+  const unlock = async () => {
+    try {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+      }
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume()
+      }
+      audioUnlocked = audioCtx.state === 'running'
+    } catch {
+      // Si falla el desbloqueo, se reintentará en otro gesto del usuario.
+    }
+
+    if (audioUnlocked) {
+      window.removeEventListener('click', unlock)
+      window.removeEventListener('keydown', unlock)
+      window.removeEventListener('touchstart', unlock)
+    }
+  }
+
+  window.addEventListener('click', unlock, { passive: true })
+  window.addEventListener('keydown', unlock, { passive: true })
+  window.addEventListener('touchstart', unlock, { passive: true })
+}
+
+function reproducirSonidoNotif() {
+  if (typeof window === 'undefined') return
+  ensureAudioUnlockListeners()
+
+  // Chrome y móviles solo permiten audio después de un gesto del usuario.
+  if (!audioUnlocked) return
+
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+    }
+    if (audioCtx.state !== 'running') return
+
+    // Dos pitidos cortos (típico de notificación)
+    ;[0, 0.18].forEach((delay) => {
+      const osc  = audioCtx.createOscillator()
+      const gain = audioCtx.createGain()
+      osc.connect(gain)
+      gain.connect(audioCtx.destination)
+      osc.type = 'sine'
+      osc.frequency.value = 880
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime + delay)
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + 0.15)
+      osc.start(audioCtx.currentTime + delay)
+      osc.stop(audioCtx.currentTime + delay + 0.15)
+    })
+  } catch {
+    // El navegador bloqueó el audio (sin interacción previa) — se ignora silenciosamente
+  }
+}
+
+async function solicitarPermisoNotificacion() {
+  if (!('Notification' in window)) return
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission()
+  }
+}
+
+function mostrarNotificacionSistema(titulo, mensaje) {
+  if (Notification.permission !== 'granted') return
+  new Notification(titulo, {
+    body:    mensaje,
+    icon:    '/favicon.ico',
+    silent:  true, // el sonido lo maneja nuestra función
+    tag:     'bus-notif', // reemplaza la anterior en vez de apilar
+  })
+}
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faHouse, faLocationDot, faRoute, faBus,
   faBell, faUser, faUsers, faRightFromBracket,
   faMoon, faSun, faBars, faMap, faGear,
-  faTriangleExclamation, faRotate, faCircleCheck
+  faTriangleExclamation, faRotate, faCircleCheck,
+  faDownload, faWifi, faArrowsRotate
 } from '@fortawesome/free-solid-svg-icons'
 import logoUpc from '../../assets/logo-upc.png'
 import api from '../../services/api'
 import socket from '../../services/socket'
+import { usePWA } from '../../hooks/usePWA'
 import './Layout.css'
 
 const navEstudiante = [
@@ -23,14 +104,13 @@ const navEstudiante = [
 ]
 
 const navConductor = [
-  { path: '/inicio',         icono: faHouse,  label: 'Inicio' },
   { path: '/conductor',      icono: faMap,    label: 'Mi recorrido' },
   { path: '/notificaciones', icono: faBell,   label: 'Notificaciones' },
   { path: '/perfil',         icono: faUser,   label: 'Perfil' },
 ]
 
 const navAdmin = [
-  { path: '/inicio',                     icono: faHouse,    label: 'Inicio' },
+  { path: '/admin',                      icono: faHouse,    label: 'Dashboard' },
   { path: '/admin/usuarios',             icono: faUsers,    label: 'Usuarios' },
   { path: '/admin/buses',                icono: faBus,      label: 'Buses' },
   { path: '/admin/rutas',                icono: faRoute,    label: 'Rutas' },
@@ -40,6 +120,12 @@ function iconoNotif(tipo) {
   if (tipo === 'retraso')     return { icono: faTriangleExclamation, color: '#f57f17' }
   if (tipo === 'cambio_ruta') return { icono: faRotate,              color: '#1565c0' }
   return                             { icono: faCircleCheck,         color: '#1e6b2e' }
+}
+
+function tituloNotif(tipo) {
+  if (tipo === 'retraso') return 'Retraso'
+  if (tipo === 'cambio_ruta') return 'Cambio de ruta'
+  return 'Informacion'
 }
 
 function formatearHace(fechaHora) {
@@ -57,8 +143,19 @@ export default function Layout({ children, titulo, sinPadding = false }) {
   const [perfilMenu, setPerfilMenu] = useState(false)
   const [notifPanel, setNotifPanel] = useState(false)
   const [notifs, setNotifs] = useState([])
+  const [toasts, setToasts] = useState([])
+  const [bannerInstalacion, setBannerInstalacion] = useState(false)
   const perfilRef = useRef(null)
   const notifRef = useRef(null)
+
+  const { puedeInstalar, instalar, estaOffline, actualizacionDisponible, aplicarActualizacion } = usePWA()
+
+  // Mostrar banner de instalación con un pequeño delay (no agresivo)
+  useEffect(() => {
+    if (!puedeInstalar) return
+    const t = setTimeout(() => setBannerInstalacion(true), 3000)
+    return () => clearTimeout(t)
+  }, [puedeInstalar])
 
   useEffect(() => {
     document.body.dataset.tema = oscuro ? 'oscuro' : 'claro'
@@ -79,13 +176,64 @@ export default function Layout({ children, titulo, sinPadding = false }) {
       .catch(() => setNotifs([]))
   }, [notifPanel])
 
+  // Pedir permiso de notificaciones del sistema al montar
+  useEffect(() => {
+    solicitarPermisoNotificacion()
+  }, [])
+
   // Nuevas notificaciones en tiempo real
   useEffect(() => {
     socket.on('notificacion:nueva', (n) => {
       setNotifs(prev => [{ ...n, hace: 'Ahora' }, ...prev].slice(0, 6))
+      reproducirSonidoNotif()
+      const titulo = `${tituloNotif(n.tipo)} — ${n.nombre_ruta || 'Ruta'}`
+      mostrarNotificacionSistema(titulo, n.mensaje)
+
+      const id = Date.now()
+      setToasts(prev => [...prev, { ...n, id, titulo }])
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000)
     })
     return () => socket.off('notificacion:nueva')
   }, [])
+
+  // Suscribirse a rooms de rutas activas para recibir notificaciones en tiempo real
+  // incluso cuando el usuario no abre la vista del mapa.
+  useEffect(() => {
+    if (!usuario) return
+
+    let rutasSuscritas = []
+    let cancelado = false
+
+    async function suscribirRutas() {
+      try {
+        if (!socket.connected) socket.connect()
+
+        const data = await api.get('/api/rutas')
+        if (cancelado) return
+
+        const lista = (Array.isArray(data) ? data : (data.rutas || []))
+        rutasSuscritas = lista
+          .filter(r => r.activa === true || r.activa === 1)
+          .map(r => Number(r.id_ruta))
+          .filter(id => Number.isFinite(id))
+
+        rutasSuscritas.forEach((id_ruta) => {
+          socket.emit('join:ruta', { id_ruta })
+        })
+      } catch (error) {
+        console.error('No se pudieron suscribir rutas para notificaciones:', error)
+      }
+    }
+
+    suscribirRutas()
+
+    return () => {
+      cancelado = true
+      rutasSuscritas.forEach((id_ruta) => {
+        socket.emit('leave:ruta', { id_ruta })
+      })
+    }
+  }, [usuario])
 
   // Cerrar dropdowns al hacer clic fuera
   useEffect(() => {
@@ -201,7 +349,7 @@ export default function Layout({ children, titulo, sinPadding = false }) {
                             <FontAwesomeIcon icon={icono} style={{ color, fontSize: 14, flexShrink: 0 }} />
                             <div className="topbar-notif-info">
                               <span className="topbar-notif-titulo">
-                                {n.tipo === 'retraso' ? 'Retraso' : 'Cambio de ruta'} — {n.nombre_ruta}
+                                {tituloNotif(n.tipo)} — {n.nombre_ruta}
                               </span>
                               <span className="topbar-notif-msg">{n.mensaje}</span>
                             </div>
@@ -254,10 +402,81 @@ export default function Layout({ children, titulo, sinPadding = false }) {
           </div>
         </header>
 
+        {/* ── Banner offline ── */}
+        {estaOffline && (
+          <div className="pwa-banner pwa-banner--offline" role="alert">
+            <FontAwesomeIcon icon={faWifi} />
+            <span>Sin conexión — algunos datos pueden no actualizarse</span>
+          </div>
+        )}
+
+        {/* ── Banner actualización disponible ── */}
+        {actualizacionDisponible && (
+          <div className="pwa-banner pwa-banner--update">
+            <FontAwesomeIcon icon={faArrowsRotate} />
+            <span>Hay una nueva versión disponible</span>
+            <button className="pwa-banner-btn" onClick={aplicarActualizacion}>
+              Actualizar
+            </button>
+          </div>
+        )}
+
+        {/* ── Banner instalación ── */}
+        {bannerInstalacion && !estaOffline && (
+          <div className="pwa-banner pwa-banner--install">
+            <FontAwesomeIcon icon={faDownload} />
+            <span>Instala la app para acceso rápido</span>
+            <button
+              className="pwa-banner-btn"
+              onClick={async () => {
+                const ok = await instalar()
+                if (ok) setBannerInstalacion(false)
+              }}
+            >
+              Instalar
+            </button>
+            <button
+              className="pwa-banner-btn pwa-banner-btn--cerrar"
+              onClick={() => setBannerInstalacion(false)}
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         <main className={`layout-contenido${sinPadding ? ' layout-contenido--sin-padding' : ''}`}>
           {children}
         </main>
       </div>
+
+      {/* ── Toasts de notificación en tiempo real ── */}
+      {toasts.length > 0 && (
+        <div className="notif-toast-wrap">
+          {toasts.map(t => {
+            const { icono, color } = iconoNotif(t.tipo)
+            return (
+              <div
+                key={t.id}
+                className={`notif-toast notif-toast--${t.tipo}`}
+                onClick={() => setToasts(prev => prev.filter(x => x.id !== t.id))}
+              >
+                <div className="notif-toast-icono">
+                  <FontAwesomeIcon icon={icono} style={{ color }} />
+                </div>
+                <div className="notif-toast-body">
+                  <span className="notif-toast-titulo">{t.titulo}</span>
+                  <span className="notif-toast-mensaje">{t.mensaje}</span>
+                </div>
+                <button
+                  className="notif-toast-cerrar"
+                  onClick={e => { e.stopPropagation(); setToasts(prev => prev.filter(x => x.id !== t.id)) }}
+                >✕</button>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

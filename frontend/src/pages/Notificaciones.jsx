@@ -16,6 +16,12 @@ function infoTipo(tipo) {
   return                             { icono: faCircleCheck,         clase: 'notif-icono--verde' }
 }
 
+function tituloNotif(tipo) {
+  if (tipo === 'retraso') return 'Retraso'
+  if (tipo === 'cambio_ruta') return 'Cambio de ruta'
+  return 'Informacion'
+}
+
 function formatearHace(fechaHora) {
   const diff = Math.floor((Date.now() - new Date(fechaHora)) / 60000)
   if (diff < 1) return 'Ahora'
@@ -34,7 +40,7 @@ export default function Notificaciones() {
         const normalizadas = (data.notificaciones || []).map(n => ({
           ...n,
           id: n.id_notificacion,
-          titulo: `${n.tipo === 'retraso' ? 'Retraso' : 'Cambio de ruta'} — ${n.nombre_ruta}`,
+          titulo: `${tituloNotif(n.tipo)} — ${n.nombre_ruta}`,
           leida: false,
           hace: formatearHace(n.fecha_hora),
         }))
@@ -50,7 +56,13 @@ export default function Notificaciones() {
 
     // Nuevas notificaciones en tiempo real
     socket.on('notificacion:nueva', (notif) => {
-      setNotifs(prev => [{ ...notif, leida: false, hace: 'Ahora' }, ...prev])
+      setNotifs(prev => [{
+        ...notif,
+        id: notif.id_notificacion || Date.now(),
+        titulo: `${tituloNotif(notif.tipo)} — ${notif.nombre_ruta || 'Ruta'}`,
+        leida: false,
+        hace: 'Ahora',
+      }, ...prev])
     })
 
     return () => socket.off('notificacion:nueva')

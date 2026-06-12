@@ -292,6 +292,15 @@ body[data-tema="oscuro"] .conductor-aviso {
   color: var(--texto);
 }
 
+.conductor-aviso-form select {
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 10px 8px;
+  font-size: 12px;
+  background: var(--bg);
+  color: var(--texto);
+}
+
 .conductor-aviso-form input:focus {
   outline: none;
   border-color: #1f7a4d;
@@ -380,6 +389,139 @@ body[data-tema="oscuro"] .conductor-log {
   background: #b7302d;
 }
 
+/* ── Leyenda del mapa ── */
+.conductor-leyenda {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 6px 0 2px;
+}
+
+.conductor-leyenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--texto-suave);
+  font-weight: 500;
+}
+
+.conductor-leyenda-linea {
+  display: inline-block;
+  width: 22px;
+  height: 4px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.conductor-leyenda-linea--ruta  { background: #1e6b2e; }
+.conductor-leyenda-linea--trazo {
+  background: #ff6b00;
+  /* simula dashArray */
+  background-image: repeating-linear-gradient(
+    to right,
+    #ff6b00 0, #ff6b00 6px,
+    transparent 6px, transparent 10px
+  );
+}
+
+.conductor-pill--ruta {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Handle y elementos de toggle (solo visibles en móvil) ── */
+.conductor-panel-handle {
+  display: none;
+  justify-content: center;
+  padding: 6px 0 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.conductor-panel-handle-bar {
+  width: 36px;
+  height: 4px;
+  border-radius: 99px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+body[data-tema="oscuro"] .conductor-panel-handle-bar {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.conductor-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.conductor-toggle-btn {
+  display: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(32, 84, 48, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--texto);
+  font-size: 13px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.conductor-toggle-btn--map {
+  color: #1f7a4d;
+}
+
+body[data-tema="oscuro"] .conductor-toggle-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ── FAB para reabrir el panel (solo móvil) ── */
+.conductor-fab-panel {
+  display: none;
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: #1f7a4d;
+  color: #fff;
+  font-size: 22px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(15, 80, 45, 0.45);
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── La sección expandible (stats + aviso + log) ── */
+.conductor-panel-expandible {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.conductor-chip-texto {
+  display: inline;
+}
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE — tablet ancho
+══════════════════════════════════════════════════ */
 @media (max-width: 980px) {
   .conductor-ride-panel {
     width: min(420px, calc(100vw - 20px));
@@ -390,31 +532,95 @@ body[data-tema="oscuro"] .conductor-log {
   }
 }
 
+/* ══════════════════════════════════════════════════
+   RESPONSIVE — móvil (bottom sheet)
+══════════════════════════════════════════════════ */
 @media (max-width: 760px) {
   .conductor-ride-page {
     min-height: calc(100vh - 64px);
   }
 
+  /* Mostrar handle y botones de toggle */
+  .conductor-panel-handle {
+    display: flex;
+  }
+
+  .conductor-toggle-btn {
+    display: inline-flex;
+  }
+
+  .conductor-fab-panel {
+    display: inline-flex;
+  }
+
+  /* Chip de conexión: solo icono en móvil colapsado */
+  .conductor-chip-texto {
+    display: none;
+  }
+
+  /* Panel base: bottom sheet */
   .conductor-ride-panel {
+    position: absolute;
     top: auto;
-    left: 8px;
-    right: 8px;
-    bottom: 8px;
-    width: auto;
-    max-height: 48vh;
-    border-radius: 18px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+    padding: 0 12px 12px;
+    gap: 8px;
+    transition: max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
   }
 
-  .conductor-botones {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Estado: colapsado — muestra header + badges + botones */
+  .conductor-panel--colapsado {
+    max-height: 248px;
   }
 
-  .conductor-btn {
-    height: 42px;
-    font-size: 12px;
+  .conductor-panel--colapsado .conductor-panel-expandible {
+    display: none;
+  }
+
+  /* Estado: expandido — panel completo con scroll */
+  .conductor-panel--expandido {
+    max-height: calc(100dvh - 72px);
+    overflow-y: auto;
+  }
+
+  .conductor-panel--expandido .conductor-panel-expandible {
+    display: flex;
+  }
+
+  /* Estado: oculto — se colapsa fuera de vista */
+  .conductor-panel--oculto {
+    max-height: 0;
+    padding: 0;
+    border: none;
   }
 
   .conductor-panel-header h3 {
-    font-size: 18px;
+    font-size: 17px;
+  }
+
+  .conductor-panel-kicker {
+    font-size: 10px;
+  }
+
+  .conductor-btn {
+    height: 44px;
+    font-size: 13px;
+  }
+
+  .conductor-log {
+    min-height: 220px;
+    max-height: none;
+  }
+
+  .conductor-log-lista {
+    max-height: 34vh;
   }
 }

@@ -50,3 +50,26 @@ body[data-tema="claro"] {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+
+/* ── Mejoras globales táctiles para móvil ── */
+@media (max-width: 768px) {
+  html {
+    /* Evitar que iOS agrande fuentes automáticamente */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Todo input/select/textarea no menor a 16px para evitar zoom en iOS */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  /* Área mínima táctil recomendada: 44×44px para botones interactivos */
+  button:not(.conductor-log-dot) {
+    min-height: 36px;
+  }
+
+  /* Texto más cómodo en lecturas de listas */
+  p, span, li {
+    line-height: 1.5;
+  }
+}

@@ -2,20 +2,19 @@
 // Recibe la petición HTTP, valida los datos
 // y llama al servicio correspondiente
 
-import { login } from '../services/authService.js'
+import { login, registrarEstudiante } from '../services/authService.js'
+import { pool } from '../config/database.js'
 
 // POST /api/auth/login
 export async function loginController(req, res) {
-  const { correo, password } = req.body
+  const { nombre_usuario, password } = req.body
 
-  // 1. Validar que los campos no estén vacíos (RF-01)
-  if (!correo || !password) {
+  if (!nombre_usuario || !password) {
     return res.status(400).json({
-      error: 'El correo y la contraseña son obligatorios'
+      error: 'El nombre de usuario y la contraseña son obligatorios'
     })
   }
 
-  // 2. Validar longitud mínima de contraseña (RNF7)
   if (password.length < 8) {
     return res.status(400).json({
       error: 'La contraseña debe tener mínimo 8 caracteres'
@@ -23,12 +22,12 @@ export async function loginController(req, res) {
   }
 
   try {
-    const resultado = await login(correo, password)
+    const resultado = await login(nombre_usuario, password)
     return res.status(200).json(resultado)
   } catch (error) {
     if (error.message === 'CREDENCIALES_INVALIDAS') {
       return res.status(401).json({
-        error: 'Correo o contraseña incorrectos'
+        error: 'Usuario o contraseña incorrectos'
       })
     }
     console.error('Error en login:', error)
@@ -38,13 +37,55 @@ export async function loginController(req, res) {
   }
 }
 
+// POST /api/auth/registro
+export async function registroController(req, res) {
+  const { nombre, nombre_usuario, correo, password } = req.body
+
+  if (!nombre || !nombre_usuario || !correo || !password) {
+    return res.status(400).json({
+      error: 'nombre, nombre de usuario, correo y contraseña son obligatorios'
+    })
+  }
+
+  if (String(password).length < 8) {
+    return res.status(400).json({
+      error: 'La contraseña debe tener mínimo 8 caracteres'
+    })
+  }
+
+  try {
+    const resultado = await registrarEstudiante({
+      nombre:         String(nombre).trim(),
+      nombre_usuario: String(nombre_usuario).trim().toLowerCase(),
+      correo:         String(correo).trim().toLowerCase(),
+      password,
+    })
+    return res.status(201).json(resultado)
+  } catch (error) {
+    if (error.message === 'CORREO_YA_REGISTRADO') {
+      return res.status(400).json({ error: 'Ya existe una cuenta con ese correo' })
+    }
+    if (error.message === 'USUARIO_YA_REGISTRADO') {
+      return res.status(400).json({ error: 'Ese nombre de usuario ya está en uso' })
+    }
+    console.error('Error en registro:', error)
+    return res.status(500).json({ error: 'Error interno del servidor' })
+  }
+}
+
 // POST /api/auth/logout
-// El logout en JWT es del lado del cliente (elimina el token)
-// Aquí simplemente confirmamos que la petición llegó autenticada
-export function logoutController(req, res) {
-  return res.status(200).json({
-    message: 'Sesión cerrada correctamente'
-  })
+export async function logoutController(req, res) {
+  try {
+    if (req.usuario?.tipo_usuario === 'conductor') {
+      await pool.query(
+        `UPDATE bus SET estado = 'inactivo' WHERE id_conductor = ? AND estado != 'inactivo'`,
+        [req.usuario.id_usuario]
+      )
+    }
+  } catch (err) {
+    console.error('Error reseteando bus en logout:', err)
+  }
+  return res.status(200).json({ message: 'Sesión cerrada correctamente' })
 }
 
 // GET /api/auth/me

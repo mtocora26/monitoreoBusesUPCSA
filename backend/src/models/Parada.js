@@ -51,4 +51,77 @@ export const Parada = {
     )
     return rows[0] || null
   },
+
+  async crear({ nombre, lat, lng, activa = true, idRuta, orden }) {
+    const conn = await pool.getConnection()
+    try {
+      await conn.beginTransaction()
+
+      const [result] = await conn.query(
+        `INSERT INTO parada (nombre, latitud, longitud, activa)
+         VALUES (?, ?, ?, ?)`,
+        [nombre, lat, lng, activa ? 1 : 0]
+      )
+
+      const idParada = result.insertId
+
+      await conn.query(
+        `INSERT INTO ruta_parada (id_ruta, id_parada, orden)
+         VALUES (?, ?, ?)`,
+        [idRuta, idParada, orden]
+      )
+
+      await conn.commit()
+      return idParada
+    } catch (error) {
+      await conn.rollback()
+      throw error
+    } finally {
+      conn.release()
+    }
+  },
+
+  async editar(idParada, { nombre, lat, lng, activa = true, idRuta, orden }) {
+    const conn = await pool.getConnection()
+    try {
+      await conn.beginTransaction()
+
+      await conn.query(
+        `UPDATE parada
+         SET nombre = ?, latitud = ?, longitud = ?, activa = ?
+         WHERE id_parada = ?`,
+        [nombre, lat, lng, activa ? 1 : 0, idParada]
+      )
+
+      await conn.query('DELETE FROM ruta_parada WHERE id_parada = ?', [idParada])
+
+      await conn.query(
+        `INSERT INTO ruta_parada (id_ruta, id_parada, orden)
+         VALUES (?, ?, ?)`,
+        [idRuta, idParada, orden]
+      )
+
+      await conn.commit()
+    } catch (error) {
+      await conn.rollback()
+      throw error
+    } finally {
+      conn.release()
+    }
+  },
+
+  async eliminar(idParada) {
+    const conn = await pool.getConnection()
+    try {
+      await conn.beginTransaction()
+      await conn.query('DELETE FROM ruta_parada WHERE id_parada = ?', [idParada])
+      await conn.query('DELETE FROM parada WHERE id_parada = ?', [idParada])
+      await conn.commit()
+    } catch (error) {
+      await conn.rollback()
+      throw error
+    } finally {
+      conn.release()
+    }
+  },
 }

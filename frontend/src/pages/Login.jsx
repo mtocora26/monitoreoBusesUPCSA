@@ -12,7 +12,7 @@ import logoBus from '../assets/logo-bus.jpeg'
 import './Login.css'
 
 export default function Login() {
-  const [correo, setCorreo] = useState('')
+  const [nombreUsuario, setNombreUsuario] = useState('')
   const [password, setPassword] = useState('')
   const [verPassword, setVerPassword] = useState(false)
   const [error, setError] = useState('')
@@ -24,14 +24,14 @@ export default function Login() {
     e.preventDefault()
     setError('')
 
-    if (!correo || !password) {
+    if (!nombreUsuario || !password) {
       setError('Completa todos los campos')
       return
     }
 
     setCargando(true)
     try {
-      const data = await api.post('/api/auth/login', { correo, password })
+      const data = await api.post('/api/auth/login', { nombre_usuario: nombreUsuario, password })
       login(data.token, data.usuario)
 
       const rol = data.usuario.tipo_usuario
@@ -76,11 +76,11 @@ export default function Login() {
             <div className="login-input-wrap">
               <FontAwesomeIcon icon={faUser} className="login-input-icon" />
               <input
-                type="email"
-                placeholder="Ingrese su usuario"
-                value={correo}
-                onChange={(e) => setCorreo(e.target.value)}
-                autoComplete="email"
+                type="text"
+                placeholder="Ingrese su nombre de usuario"
+                value={nombreUsuario}
+                onChange={(e) => setNombreUsuario(e.target.value)}
+                autoComplete="username"
               />
             </div>
           </div>
@@ -114,7 +114,6 @@ export default function Login() {
           </button>
         </form>
 
-        <p className="login-link">¿Olvidó su contraseña?</p>
         <p className="login-link">
           ¿No tienes cuenta?{' '}
           <span className="login-link--verde" onClick={() => navigate('/registro')}>

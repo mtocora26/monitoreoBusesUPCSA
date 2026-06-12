@@ -132,3 +132,34 @@
   border-color: #1e6b2e;
   color: #1e6b2e;
 }
+
+@media (max-width: 600px) {
+  .bus-item {
+    padding: 14px 14px;
+    gap: 12px;
+  }
+
+  .bus-icono {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+    border-radius: 10px;
+  }
+
+  .bus-nombre {
+    font-size: 15px;
+  }
+
+  .bus-ruta {
+    font-size: 13px;
+  }
+
+  .bus-badge {
+    font-size: 12px;
+    padding: 2px 8px;
+  }
+
+  .buses-titulo {
+    font-size: 19px;
+  }
+}

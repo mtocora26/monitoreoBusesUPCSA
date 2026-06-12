@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
-  faPlus, faPen, faTrash, faXmark, faFloppyDisk
+  faPlus, faPen, faTrash, faXmark, faFloppyDisk, faEye, faEyeSlash
 } from '@fortawesome/free-solid-svg-icons'
 import Layout from '../../components/shared/Layout'
 import api from '../../services/api'
@@ -11,8 +11,9 @@ export default function GestionUsuarios() {
   const [usuarios, setUsuarios] = useState([])
   const [cargando, setCargando] = useState(true)
   const [modal, setModal] = useState(null) // null | 'crear' | 'editar'
-  const [form, setForm] = useState({ nombre: '', correo: '', password: '', tipo_usuario: 'estudiante', activo: true })
+  const [form, setForm] = useState({ nombre: '', nombre_usuario: '', correo: '', password: '', tipo_usuario: 'estudiante', activo: true })
   const [editandoId, setEditandoId] = useState(null)
+  const [verPassword, setVerPassword] = useState(false)
 
   async function cargar() {
     try {
@@ -28,20 +29,23 @@ export default function GestionUsuarios() {
   useEffect(() => { cargar() }, [])
 
   function abrirCrear() {
-    setForm({ nombre: '', correo: '', password: '', tipo_usuario: 'estudiante', activo: true })
+    setForm({ nombre: '', nombre_usuario: '', correo: '', password: '', tipo_usuario: 'estudiante', activo: true })
     setEditandoId(null)
+    setVerPassword(false)
     setModal('crear')
   }
 
   function abrirEditar(usuario) {
     setForm({
-      nombre:       usuario.nombre,
-      correo:       usuario.correo,
-      password:     '',
-      tipo_usuario: usuario.tipo_usuario,
-      activo:       usuario.activo === 1 || usuario.activo === true,
+      nombre:         usuario.nombre,
+      nombre_usuario: usuario.nombre_usuario || '',
+      correo:         usuario.correo,
+      password:       '',
+      tipo_usuario:   usuario.tipo_usuario,
+      activo:         usuario.activo === 1 || usuario.activo === true,
     })
     setEditandoId(usuario.id_usuario)
+    setVerPassword(false)
     setModal('editar')
   }
 
@@ -100,6 +104,7 @@ export default function GestionUsuarios() {
                 <thead>
                   <tr>
                     <th>Nombre</th>
+                    <th>Usuario</th>
                     <th>Correo</th>
                     <th>Rol</th>
                     <th>Estado</th>
@@ -110,6 +115,7 @@ export default function GestionUsuarios() {
                   {usuarios.map(u => (
                     <tr key={u.id_usuario}>
                       <td className="celda-nombre">{u.nombre}</td>
+                      <td className="celda-usuario">{u.nombre_usuario || '—'}</td>
                       <td className="celda-correo">{u.correo}</td>
                       <td>{textoRol(u.tipo_usuario)}</td>
                       <td>
@@ -156,6 +162,15 @@ export default function GestionUsuarios() {
                   />
                 </div>
                 <div className="modal-campo">
+                  <label>Nombre de usuario</label>
+                  <input
+                    type="text"
+                    value={form.nombre_usuario}
+                    onChange={e => setForm({ ...form, nombre_usuario: e.target.value })}
+                    placeholder="ej. juan.perez"
+                  />
+                </div>
+                <div className="modal-campo">
                   <label>Correo</label>
                   <input
                     type="email"
@@ -164,17 +179,38 @@ export default function GestionUsuarios() {
                     placeholder="correo@unicesar.edu.co"
                   />
                 </div>
-                {modal === 'crear' && (
-                  <div className="modal-campo">
-                    <label>Contraseña</label>
+                <div className="modal-campo">
+                  <label>
+                    {modal === 'crear' ? 'Contraseña' : 'Nueva contraseña'}
+                    {modal === 'editar' && (
+                      <span style={{ fontWeight: 'normal', fontSize: '0.8em', marginLeft: '6px', opacity: 0.6 }}>
+                        (dejar vacío para no cambiar)
+                      </span>
+                    )}
+                  </label>
+                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
                     <input
-                      type="password"
+                      type={verPassword ? 'text' : 'password'}
                       value={form.password}
                       onChange={e => setForm({ ...form, password: e.target.value })}
-                      placeholder="Mínimo 8 caracteres"
+                      placeholder={modal === 'crear' ? 'Mínimo 8 caracteres' : '••••••••'}
+                      style={{ paddingRight: '2.5rem', width: '100%' }}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setVerPassword(v => !v)}
+                      style={{
+                        position: 'absolute', right: '0.6rem',
+                        background: 'none', border: 'none',
+                        cursor: 'pointer', color: 'var(--color-texto-secundario, #666)',
+                        padding: '0.2rem', lineHeight: 1,
+                      }}
+                      tabIndex={-1}
+                    >
+                      <FontAwesomeIcon icon={verPassword ? faEyeSlash : faEye} />
+                    </button>
                   </div>
-                )}
+                </div>
                 <div className="modal-campo">
                   <label>Rol</label>
                   <select

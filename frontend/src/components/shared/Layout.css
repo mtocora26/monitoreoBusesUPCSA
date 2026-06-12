@@ -417,6 +417,84 @@ html, #root {
   flex-direction: column;
 }
 
+/* ── Banners PWA (offline, update, install) ── */
+.pwa-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 9999;
+  position: sticky;
+  top: 52px;          /* justo debajo del topbar */
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+.pwa-banner--offline {
+  background: #c62828;
+  color: #fff;
+}
+
+.pwa-banner--update {
+  background: #1565c0;
+  color: #fff;
+}
+
+.pwa-banner--install {
+  background: #1e6b2e;
+  color: #fff;
+}
+
+.pwa-banner span {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pwa-banner-btn {
+  background: rgba(255, 255, 255, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.pwa-banner-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.pwa-banner-btn--cerrar {
+  padding: 5px 8px;
+  background: transparent;
+  border-color: transparent;
+}
+
+@media (max-width: 480px) {
+  .pwa-banner {
+    font-size: 12px;
+    padding: 8px 12px;
+    gap: 8px;
+    top: 52px;
+  }
+
+  .pwa-banner span {
+    font-size: 11px;
+  }
+}
+
 /* ── Overlay móvil ── */
 .layout-overlay {
   display: none;
@@ -445,16 +523,131 @@ html, #root {
 
   .topbar-btn {
     font-size: 16px;
-    padding: 6px 8px;
+    padding: 8px;       /* área táctil mínima 44px */
+    min-width: 40px;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .topbar-avatar {
-    width: 32px;
-    height: 32px;
+    width: 36px;
+    height: 36px;
     font-size: 12px;
   }
 
-  .layout-contenido {
-    padding: 16px 12px;
+  /* Dropdowns: no se salen de la pantalla */
+  .topbar-panel {
+    position: fixed;
+    top: 52px;
+    right: 8px;
+    left: 8px;
+    border-radius: 16px;
+    max-height: 70vh;
+    overflow-y: auto;
   }
+
+  .topbar-panel--notif {
+    width: auto;
+    max-width: none;
+  }
+
+  .topbar-panel--perfil {
+    width: auto;
+    max-width: 320px;
+    left: auto;
+  }
+
+  .layout-contenido {
+    padding: 14px 12px;
+  }
+
+  /* Elementos de la sidebar más espaciados para touch */
+  .sidebar-link {
+    padding: 16px 24px;
+    font-size: 16px;
+  }
+
+  .sidebar-logout {
+    padding: 20px 24px;
+    font-size: 16px;
+  }
+}
+/* ── Toast de notificación en tiempo real ── */
+.notif-toast-wrap {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.notif-toast {
+  pointer-events: all;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-left: 4px solid #1e6b2e;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  padding: 14px 16px;
+  min-width: 280px;
+  max-width: 340px;
+  animation: toast-entrar 0.3s ease;
+  cursor: pointer;
+}
+.notif-toast--retraso     { border-left-color: #f57f17; }
+.notif-toast--cambio_ruta { border-left-color: #1565c0; }
+
+.notif-toast-icono {
+  font-size: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.notif-toast-icono--verde   { color: #1e6b2e; }
+.notif-toast-icono--amarillo{ color: #f57f17; }
+.notif-toast-icono--azul    { color: #1565c0; }
+
+.notif-toast-body { flex: 1; }
+.notif-toast-titulo {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--texto);
+  display: block;
+  margin-bottom: 2px;
+}
+.notif-toast-mensaje {
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+  display: block;
+}
+.notif-toast-cerrar {
+  background: none;
+  border: none;
+  color: var(--texto-suave);
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+@keyframes toast-entrar {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@media (max-width: 600px) {
+  .notif-toast-wrap {
+    bottom: 16px;
+    right: 12px;
+    left: 12px;
+  }
+  .notif-toast { max-width: 100%; }
 }

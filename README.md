@@ -5,6 +5,10 @@ Aplicacion web para monitoreo de buses en tiempo real con:
 - Frontend React + Vite + Leaflet
 - Base de datos MySQL (compatible con PlanetScale)
 
+## Documentacion de entrega academica
+
+Indice principal: docs/00_indice_entrega.md
+
 ## Arquitectura para sustentacion (sin tarjeta)
 
 - Frontend: Vercel (publico y estable)

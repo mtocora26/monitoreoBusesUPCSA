@@ -15,9 +15,9 @@ export async function enviarNotificacion(req, res) {
     return res.status(400).json({ error: 'tipo y mensaje son obligatorios' })
   }
 
-  const tiposValidos = ['cambio_ruta', 'retraso']
+  const tiposValidos = ['cambio_ruta', 'retraso', 'info']
   if (!tiposValidos.includes(tipo)) {
-    return res.status(400).json({ error: 'tipo debe ser cambio_ruta o retraso' })
+    return res.status(400).json({ error: 'tipo debe ser cambio_ruta, retraso o info' })
   }
 
   try {

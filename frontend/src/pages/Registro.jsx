@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
-  faUser, faEnvelope, faIdCard, faLock,
-  faEye, faEyeSlash, faArrowLeft,
+  faUser, faEnvelope, faLock,
+  faEye, faEyeSlash,
   faCircleCheck, faUserPlus, faShield
 } from '@fortawesome/free-solid-svg-icons'
 import logoUpc from '../assets/logo-upc.png'
@@ -16,7 +16,7 @@ export default function Registro() {
   const { login } = useAuth()
 
   const [form, setForm] = useState({
-    nombre: '', correo: '', documento: '', password: '', confirmar: ''
+    nombre: '', nombre_usuario: '', correo: '', password: '', confirmar: ''
   })
   const [mostrar, setMostrar]     = useState({ password: false, confirmar: false })
   const [errores, setErrores]     = useState({})
@@ -26,16 +26,18 @@ export default function Registro() {
 
   function validar() {
     const e = {}
-    if (!form.nombre.trim())    e.nombre    = 'El nombre es obligatorio'
-    if (!form.correo.trim())    e.correo    = 'El correo es obligatorio'
+    if (!form.nombre.trim())         e.nombre         = 'El nombre es obligatorio'
+    if (!form.nombre_usuario.trim()) e.nombre_usuario = 'El nombre de usuario es obligatorio'
+    else if (!/^[a-zA-Z0-9._-]{3,20}$/.test(form.nombre_usuario))
+                                     e.nombre_usuario = 'Solo letras, números, puntos, guiones (3-20 caracteres)'
+    if (!form.correo.trim())         e.correo         = 'El correo es obligatorio'
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo))
-                                 e.correo   = 'Correo no válido'
-    if (!form.documento.trim()) e.documento = 'El documento es obligatorio'
-    if (!form.password)         e.password  = 'La contraseña es obligatoria'
+                                     e.correo         = 'Correo no válido'
+    if (!form.password)              e.password       = 'La contraseña es obligatoria'
     else if (form.password.length < 8)
-                                 e.password  = 'Mínimo 8 caracteres'
+                                     e.password       = 'Mínimo 8 caracteres'
     if (form.password !== form.confirmar)
-                                 e.confirmar = 'Las contraseñas no coinciden'
+                                     e.confirmar      = 'Las contraseñas no coinciden'
     setErrores(e)
     return Object.keys(e).length === 0
   }
@@ -46,13 +48,11 @@ export default function Registro() {
     if (!validar()) return
     setEnviando(true)
     try {
-      const data = await api.post('/api/usuarios', {
-        nombre:       form.nombre,
-        correo:       form.correo,
-        documento:    form.documento,
-        password:     form.password,
-        tipo_usuario: 'estudiante',
-        activo:       true,
+      const data = await api.post('/api/auth/registro', {
+        nombre:         form.nombre,
+        nombre_usuario: form.nombre_usuario.toLowerCase(),
+        correo:         form.correo,
+        password:       form.password,
       })
       // Si el backend devuelve token, iniciamos sesión directo
       if (data.token) {
@@ -69,11 +69,11 @@ export default function Registro() {
   }
 
   const campos = [
-    { key: 'nombre',    label: 'Nombre completo',     icono: faUser,    type: 'text',     placeholder: 'Tu nombre completo'       },
-    { key: 'correo',    label: 'Correo electrónico',   icono: faEnvelope,type: 'email',    placeholder: 'correo@ejemplo.com'       },
-    { key: 'documento', label: 'Número de documento',  icono: faIdCard,  type: 'text',     placeholder: 'Cédula de ciudadanía'     },
-    { key: 'password',  label: 'Contraseña',           icono: faLock,    type: 'password', placeholder: 'Mínimo 8 caracteres'      },
-    { key: 'confirmar', label: 'Confirmar contraseña', icono: faLock,    type: 'password', placeholder: 'Repite tu contraseña'     },
+    { key: 'nombre',         label: 'Nombre completo',     icono: faUser,    type: 'text',     placeholder: 'Tu nombre completo'            },
+    { key: 'nombre_usuario', label: 'Nombre de usuario',   icono: faUser,    type: 'text',     placeholder: 'ej. juan.perez o jperez2024'   },
+    { key: 'correo',         label: 'Correo electrónico',  icono: faEnvelope,type: 'email',    placeholder: 'correo@ejemplo.com'            },
+    { key: 'password',       label: 'Contraseña',          icono: faLock,    type: 'password', placeholder: 'Mínimo 8 caracteres'           },
+    { key: 'confirmar',      label: 'Confirmar contraseña',icono: faLock,    type: 'password', placeholder: 'Repite tu contraseña'          },
   ]
 
   if (exito) {

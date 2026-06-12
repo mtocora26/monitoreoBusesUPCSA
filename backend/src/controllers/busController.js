@@ -2,6 +2,7 @@
 // Endpoints de buses — sirve datos al módulo de Mapas (#09, #11, #13)
 
 import { Bus } from '../models/Bus.js'
+import { Notificacion } from '../models/Notificacion.js'
 
 // GET /api/buses — lista completa
 export async function listarBuses(req, res) {
@@ -111,12 +112,16 @@ export async function editarBus(req, res) {
       [nombre, placa, capacidad || 45, estado, id_conductor || null, id]
     )
 
-    if (id_ruta) {
-      await (await import('../config/database.js')).pool.query(
-        `INSERT INTO bus_ruta (id_bus, id_ruta) VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE id_ruta = ?`,
-        [id, id_ruta, id_ruta]
-      )
+    if (id_ruta !== undefined) {
+      const { pool } = await import('../config/database.js')
+      // Elimina cualquier asignación anterior antes de insertar la nueva
+      await pool.query(`DELETE FROM bus_ruta WHERE id_bus = ?`, [id])
+      if (id_ruta) {
+        await pool.query(
+          `INSERT INTO bus_ruta (id_bus, id_ruta) VALUES (?, ?)`,
+          [id, id_ruta]
+        )
+      }
     }
 
     return res.status(200).json({ ok: true })
@@ -143,7 +148,7 @@ export async function eliminarBus(req, res) {
 // PATCH /api/buses/:id/estado — cambiar estado del bus
 export async function cambiarEstado(req, res) {
   const { estado } = req.body
-  const estadosValidos = ['en_recorrido', 'detenido', 'fuera_de_servicio']
+  const estadosValidos = ['en_recorrido', 'detenido', 'fuera_de_servicio', 'inactivo']
 
   if (!estadosValidos.includes(estado)) {
     return res.status(400).json({ error: `Estado inválido. Válidos: ${estadosValidos.join(', ')}` })
@@ -154,8 +159,38 @@ export async function cambiarEstado(req, res) {
 
     // Emitir cambio de estado por socket si io está disponible
     const io = req.app.get('io')
+    const bus = await Bus.porId(req.params.id)
+
+    // Notificación automática informativa para usuarios de la ruta.
+    if (io && bus && bus.id_ruta) {
+      const mensajesPorEstado = {
+        en_recorrido: `${bus.nombre} inicio su recorrido en ${bus.nombre_ruta || 'su ruta'}.`,
+        detenido: `${bus.nombre} se encuentra temporalmente detenido.`,
+        fuera_de_servicio: `${bus.nombre} finalizo su recorrido por hoy.`,
+      }
+
+      const mensaje = mensajesPorEstado[estado]
+      if (mensaje) {
+        const idNotificacion = await Notificacion.guardar({
+          id_ruta: bus.id_ruta,
+          id_conductor: req.usuario.id_usuario,
+          tipo: 'info',
+          mensaje,
+        })
+
+        io.to(`ruta_${bus.id_ruta}`).emit('notificacion:nueva', {
+          id_notificacion: idNotificacion,
+          id_ruta: bus.id_ruta,
+          tipo: 'info',
+          mensaje,
+          nombre_conductor: req.usuario.nombre,
+          nombre_ruta: bus.nombre_ruta,
+          fecha_hora: new Date().toISOString(),
+        })
+      }
+    }
+
     if (io) {
-      const bus = await Bus.porId(req.params.id)
       if (bus && bus.id_ruta) {
         io.to(`ruta_${bus.id_ruta}`).emit('bus:estado', {
           id_bus: Number(req.params.id),

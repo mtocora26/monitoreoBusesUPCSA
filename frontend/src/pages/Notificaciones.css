@@ -155,3 +155,41 @@
   border-color: #1e6b2e;
   color: #1e6b2e;
 }
+
+@media (max-width: 600px) {
+  .notifs-titulo {
+    font-size: 19px;
+  }
+
+  .notif-item {
+    padding: 14px 14px;
+    gap: 12px;
+  }
+
+  .notif-icono {
+    width: 36px;
+    height: 36px;
+    font-size: 15px;
+  }
+
+  .notif-titulo {
+    font-size: 14px;
+  }
+
+  .notif-mensaje {
+    font-size: 12px;
+  }
+
+  .notif-hace {
+    font-size: 11px;
+  }
+
+  .notifs-btn-leer {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .notifs-vacio {
+    padding: 28px 16px;
+  }
+}
