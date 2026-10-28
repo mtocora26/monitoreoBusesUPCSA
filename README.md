@@ -17,6 +17,20 @@ Indice principal: docs/00_indice_entrega.md
 
 Esta arquitectura es suficiente para presentar y que tus companeras accedan por URL publica el dia de la sustentacion.
 
+## Arranque local
+
+1. Base de datos (MySQL en el puerto 3307, con esquema y datos demo de `database/`):
+   ```
+   docker compose up -d
+   ```
+   Sin el plugin compose: `docker run -d --name monitoreo-buses-db -e MYSQL_ROOT_PASSWORD=<DB_PASSWORD> -e MYSQL_DATABASE=bd_monitoreo_buses -p 3307:3306 -v monitoreo_db_data:/var/lib/mysql -v $PWD/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro -v $PWD/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro mysql:8.0`
+   (`DB_PASSWORD` debe coincidir con `backend/.env`; por defecto `root`.)
+2. `cp backend/.env.example backend/.env` y ajustar `DB_PORT=3307`, `DB_USER=root`, `DB_NAME=bd_monitoreo_buses`.
+3. `npm install` en la raiz, `backend/` y `frontend/`.
+4. `npm run dev` (backend en :3000, frontend en :5173).
+
+Usuarios demo (clave `Admin123*`): `admin`, `conductor`, `estudiante`.
+
 ## Variables de entorno
 
 ### Backend (`backend/.env.example`)

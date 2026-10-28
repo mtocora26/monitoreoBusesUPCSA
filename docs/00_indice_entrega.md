@@ -10,7 +10,8 @@
 7. Plan de pruebas QA: docs/07_pruebas_qa.md
 8. Interfaz de usuario: docs/08_interfaz_usuario.md
 9. Aplicaciones/herramientas utilizadas: docs/09_aplicaciones_herramientas.md
-10. Derechos de autor del codigo fuente: COPYRIGHT.md
+10. Plan de arquitectura del semestre (planificacion, no ejecutado): docs/10_plan_arquitectura_semestre.md
+11. Derechos de autor del codigo fuente: COPYRIGHT.md
 
 ## Evidencias recomendadas para anexar
 - Capturas por rol (admin, conductor, estudiante).
